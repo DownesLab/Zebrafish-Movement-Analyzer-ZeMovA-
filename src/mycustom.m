@@ -1,16 +1,16 @@
 h=figure('Position', [100, 00, 1300, 1000]);
 prefix='b';
 for  i = [1:10]
-   videoSource = vision.VideoFileReader(strcat('../Mittal share/',prefix,'_',int2str(i),'.avi'));
-   videoPlayer = vision.VideoPlayer('Position', [100, 100, 1000, 1000]);
+   videoSource =  VideoReader(strcat('../Mittal share/',prefix,'_',int2str(i),'.avi'));
     k=1;
-   I=step(videoSource);
+   I=readFrame(videoSource);
    I=preProcess(I,0.955,140);
    prevI=I;
-   while(~isDone(videoSource))
-        I=step(videoSource);
+   while(hasFrame(videoSource))
+        I=readFrame(videoSource);
        
         I=rgb2gray(I);
+        I=im2double(I);
          oI=I;
         I=imcomplement(I);
         I=imclearborder(I,4);
@@ -34,14 +34,16 @@ for  i = [1:10]
           Y=J;
         Y=imsharpen(Y);
         subplot(2,3,4),subimage(Y),title('sharpened');
-         I=imgaussfilt(Y,1.2);
+         I=imgaussfilt(Y,1.1);
 %         diskFilter=fspecial('disk',3);
 %         I=imfilter(Y,diskFilter);
         subplot(2,3,5),subimage(I),title('gaussian');
-        b=max(I(:));
+        [b loc]=max(I(:));
         c=imbinarize(I,b-0.05);
+%         se=strel('disk',1);
+%         c=imdilate(c,se);
         subplot(2,3,6),subimage(c),title('max');
-        subplot(2,3,5),subimage(imadd(oI,im2single(c))),title('added');
+        subplot(2,3,5),subimage(imadd(oI,im2double(c))),title('added');
 %         Y=imdilate(Y,se);
 %         subplot(2,3,6),subimage(Y),title('dilated');
 
@@ -62,12 +64,14 @@ for  i = [1:10]
 %         J=imerode(J,se2);
 %         subplot(2,3,6),subimage(J);
 
-        for j=[1:30]
-           if ~isDone(videoSource)
-            step(videoSource);
+        for j=[1:10]
+           if hasFrame(videoSource)
+            readFrame(videoSource);
            end
         end
                 saveas(h,strcat('custom/',prefix,int2str(i),'_',int2str(k),'.jpg'));  
                 k=k+1;
            end
 end
+
+
