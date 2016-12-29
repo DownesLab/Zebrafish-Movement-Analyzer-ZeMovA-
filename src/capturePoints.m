@@ -1,26 +1,9 @@
 h=figure('Position', [100, 00, 1300, 1000]);
-prefix='a';
-for  i = [1:5]
+prefix='b';
+for  i = [1 :11]
    videoSource = VideoReader(strcat('../Mittal share/',prefix,'_',int2str(i),'.avi'));
-%    videoPlayqer = vision.VideoPlayer('Position', [100, 100, 1000, 1000]);
-   k=1;
+   frameCount=1;
    I=readFrame(videoSource);
-%    I=rgb2gray(I);
-%    oI=I;
-% %    detect the head
-%    head=detectHead(I);
-%    
-%    
-%    I=preProcess(I,0.955,140);
-%    I=fillSmallHoles(I);
-%    
-%    
-%    se=strel('disk',1);
-%    I=imdilate(I,se);
-%    skel=bwmorph(skeleton(I)>35,'skel',Inf);
-%    oI=im2double(oI);
-%    k=imadd(oI,im2double(skel));
-   
    prevI=I;
    while(hasFrame(videoSource))
 %       Read the image and convert it to grayscale
@@ -30,7 +13,7 @@ for  i = [1:5]
         originalI=im2double(originalI);
         
 %         Display the image
-        subplot(2,3,1),subimage(I),title('original');
+%         subplot(2,3,1),subimage(I),title('original');
         
 %       Detect the head and show it in a figure
         head=detectHead(I);
@@ -38,8 +21,8 @@ for  i = [1:5]
         
 %         Draw the skeleton
         
-        I=preProcess(I,0.955,140);
-%         subplot(2,3,6),subimage(I),title('preprocessed');
+        I=preProcess(I,0.955,100);
+         subplot(2,3,1),subimage(I),title('preprocessed');
 %         I=fillSmallHoles(I);
         se=strel('disk',1);
         I=imclose(I,se);
@@ -58,7 +41,13 @@ for  i = [1:5]
         
         mask=zeros(size(originalI));
         hp=headPoint(head,skel,I);
+        if isequal(hp,[0,0])
+            continue;
+        end
         [bdRC,tailRC]=detectBodyTail(hp,skel,I,0.4);
+        if isequal(bdRC,[0 0])
+            continue;
+        end
         z=originalI;
         mask(hp(1,1),hp(1,2))=1;
         mask(tailRC(1,1),tailRC(1,2))=1;
@@ -67,16 +56,16 @@ for  i = [1:5]
         mask=imdilate(mask,se);
         subplot(2,3,6),subimage(imadd(z,im2double(mask)));
         
-        pause(1);
+%         pause(1);
 %                 pause(1);
         
-        for j=[1:20]
-           if hasFrame(videoSource)
-            readFrame(videoSource);
-           end
-        end
-%                 saveas(h,strcat('custom/',prefix,int2str(i),'_',int2str(k),'.jpg'));  
-                k=k+1;
+%         for j=[1:1]
+%            if hasFrame(videoSource)
+%             readFrame(videoSource);
+%            end
+%         end
+%                 saveas(h,strcat('custom/',prefix,int2str(i),'_',int2str(frameCount),'.jpg'));  
+                frameCount=frameCount+1;
    end
 end
 function hp=headPoint(headRegion,skel,img)
@@ -126,7 +115,12 @@ function [bodyRC,tailRC]=detectBodyTail(headPoint,skel,img,proportion)
     end
     
     bodyRC=[0 0];
-    [bodyRC(1,1), bodyRC(1,2)]=find(D==20);
+    %Select the body point after some threshold
+    if ~isequal(tailRC,[0 0])
+        if(length(find(D==20))==1)
+            [bodyRC(1,1), bodyRC(1,2)]=find(D==20);
+        end
+    end
 end
 function fillImg=fillSmallHoles(img)
     filled = imfill(img,'holes');

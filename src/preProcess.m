@@ -1,4 +1,4 @@
-function [Img] = preProcess(Img, bThresh, minPixel)
+function [pImg] = preProcess(Img, bThresh, minPixel)
 %PREPROCESS Function to remove noise and probe from the video and threshold
 %the image
 %   This function converts the image into a binary representatioin, removes
@@ -14,5 +14,10 @@ function [Img] = preProcess(Img, bThresh, minPixel)
     Img=imcomplement(Img);
     BWdfill = imfill(Img, 'holes');
     Img=bwareaopen(Img,minPixel);
+    cc=bwconncomp(Img);
+    areaComp=cellfun(@numel,cc.PixelIdxList);
+    [maxArea,maxAIdx]=max(areaComp);
+    pImg=false(size(Img));
+    pImg(cc.PixelIdxList{maxAIdx})=true;
 end
 
