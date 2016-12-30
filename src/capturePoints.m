@@ -44,7 +44,7 @@ for  i = [1 :11]
         if isequal(hp,[0,0])
             continue;
         end
-        [bdRC,tailRC]=detectBodyTail(hp,skel,I,0.4);
+        [bdRC,tailRC]=detectBodyTail(hp,skel,20);
         if isequal(bdRC,[0 0])
             continue;
         end
@@ -69,15 +69,15 @@ for  i = [1 :11]
    end
 end
 function hp=headPoint(headRegion,skel,img)
-    [dmap, endCR, branchCR]=anaskel(skel);
+    [dmap, endCR, branchCR]=anaskel(skel); %determine the end and branch points
 %     approach is to compute the geodesic distance transform with
 %     headRegion as seed and then find the endpoint with the min value
     [headRgnRow, headRgnCol]=find(headRegion);
-    D=bwdistgeodesic(img,headRgnCol,headRgnRow);
+    D=bwdistgeodesic(img,headRgnCol,headRgnRow); %compute geodesic transform from the head region
     headRC=[0 0];
     minDist=Inf;
     
-    for i = [1:size(endCR,2)]
+    for i = [1:size(endCR,2)]%find the endpoint with min. geodesic distance 
         if D(endCR(2,i),endCR(1,i))<minDist
             minDist=D(endCR(2,i),endCR(1,i));
             headRC(1,1)=endCR(2,i);
@@ -98,14 +98,18 @@ function hp=headPoint(headRegion,skel,img)
     hp=headRC;
 end
 
-function [bodyRC,tailRC]=detectBodyTail(headPoint,skel,img,proportion)
-    [dmap,endCR,branchCR]=anaskel(skel);  
+function [bodyRC,tailRC]=detectBodyTail(headPoint,skel,bodyDist)
+% Function to determine the body and tail points for the larvae
+% headPoint - the head of the larvae
+% skel - the skeleton
+% bodyDist - The distance from the head to the body point
+    [dmap,endCR,branchCR]=anaskel(skel);  % get the end and branch points of the skeleton
     
-    tailRC=[0 0];
-     D=bwdistgeodesic(skel,headPoint(1,2),headPoint(1,1));
-    if size(endCR,2)>1
+    tailRC=[0 0]; %initialize tail coordinates to be 0,0
+     D=bwdistgeodesic(skel,headPoint(1,2),headPoint(1,1)); %calculate the geodesic distance from the head
+    if size(endCR,2)>1 %if there are less than 2 end point of the skeleton then the fish is in a loop
         maxDist=-Inf;
-        for i = [1:size(endCR,2)]
+        for i = [1:size(endCR,2)] % find the endpoint which is the furthest from the head
             if D(endCR(2,i),endCR(1,i))>maxDist
                 maxDist=D(endCR(2,i),endCR(1,i));
                 tailRC(1,1)=endCR(2,i);
@@ -116,23 +120,26 @@ function [bodyRC,tailRC]=detectBodyTail(headPoint,skel,img,proportion)
     
     bodyRC=[0 0];
     %Select the body point after some threshold
-    if ~isequal(tailRC,[0 0])
-        if(length(find(D==20))==1)
-            [bodyRC(1,1), bodyRC(1,2)]=find(D==20);
+    if ~isequal(tailRC,[0 0]) %if no tail was found, then skip
+        if(length(find(D==bodyDist))==1)% if multiple points are equidistant then it might mean that there is a loop
+            [bodyRC(1,1), bodyRC(1,2)]=find(D==bodyDist);
         end
     end
 end
 function fillImg=fillSmallHoles(img)
-    filled = imfill(img,'holes');
-    holes=filled&~img;
+% function to fill the small holes in an image
+    filled = imfill(img,'holes');% fill all holes
+    
+    holes=filled&~img; %determien the holes
 %     identify big holes
     bigHoles=bwareaopen(holes,5);
-    smallHoles=holes & ~bigHoles;
+    smallHoles=holes & ~bigHoles; 
     fillImg= img | smallHoles;
 end
 
-function dImg=detectHead(img)   
-        img=im2double(img);
+function dImg=detectHead(img)
+% get a rough idea of the head region
+        img=im2double(img); 
         img=imcomplement(img);
         img=imclearborder(img,4);
         se=strel('square',5);
