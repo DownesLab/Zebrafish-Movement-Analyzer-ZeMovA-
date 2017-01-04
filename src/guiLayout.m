@@ -87,6 +87,13 @@ function sliderVid_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+value=handles.sliderVid.Value;
+value=round(value,0);
+handles.data.currentFrame=value;
+axes(handles.axesFigure);
+imshow(handles.data.imgSequence(:,:,handles.data.currentFrame));
+guidata(hObject,handles);
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -121,6 +128,11 @@ handles.data.prImgSequence=zeros(size(handles.data.imgSequence)); %array for pro
 handles.data.currentFrame=1;
 handles.data.playFlag=1;
 % Enable video controls after loading is complete
+handles.sliderVid.Value=1;
+handles.sliderVid.Min=1;
+handles.sliderVid.Max=frameCount-1;
+slidStep=1.0/(handles.sliderVid.Max-1);
+handles.sliderVid.SliderStep=[slidStep slidStep];
 set(handles.buttonPlayPause,'Enable','on'); 
 set(handles.buttonPrevFrame,'Enable','on');
 set(handles.buttonNextFrame,'Enable','on');
@@ -164,16 +176,21 @@ if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video a
     set(handles.buttonPlayPause,'String','Pause'); 
 %     handles.data.currentFrame=1;
     handles.data.playFlag=1;
-    i = handles.data.currentFrame;
+    i=handles.data.currentFrame;
     while (i<=size(handles.data.imgSequence,3) && handles.data.playFlag==1)
         guidata(hObject, handles);
         handles.data.currentFrame=i;
         axes(handles.axesFigure);
         imshow(handles.data.imgSequence(:,:,i));
+        handles.sliderVid.Value=i;
         guidata(hObject, handles);
         drawnow;
         handles=guidata(hObject);
-        i=i+1;
+        if(handles.data.currentFrame~=i)
+            i=handles.data.currentFrame;
+        else
+            i=i+1;
+        end
     end
     if handles.data.currentFrame==size(handles.data.imgSequence,3)
         set(handles.buttonPlayPause,'String','Play'); 
