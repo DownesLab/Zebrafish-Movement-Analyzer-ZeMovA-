@@ -119,7 +119,7 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
 end
 handles.data.prImgSequence=zeros(size(handles.data.imgSequence)); %array for processed Frames
 handles.data.currentFrame=1;
-
+handles.data.playFlag=1;
 % Enable video controls after loading is complete
 set(handles.buttonPlayPause,'Enable','on'); 
 set(handles.buttonPrevFrame,'Enable','on');
@@ -163,16 +163,27 @@ if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video a
 %     uiresume();
     set(handles.buttonPlayPause,'String','Pause'); 
 %     handles.data.currentFrame=1;
-    for i=[handles.data.currentFrame:size(handles.data.imgSequence,3)]
+    handles.data.playFlag=1;
+    i = handles.data.currentFrame;
+    while (i<=size(handles.data.imgSequence,3) && handles.data.playFlag==1)
+        guidata(hObject, handles);
         handles.data.currentFrame=i;
         axes(handles.axesFigure);
         imshow(handles.data.imgSequence(:,:,i));
         guidata(hObject, handles);
         drawnow;
+        handles=guidata(hObject);
+        i=i+1;
+    end
+    if handles.data.currentFrame==size(handles.data.imgSequence,3)
+        set(handles.buttonPlayPause,'String','Play'); 
+        handles.data.currentFrame=1;
+        guidata(hObject,handles);
     end
 else
         set(handles.buttonPlayPause,'String','Play');
-        uiwait();
+        handles.data.playFlag=0;
+        guidata(hObject, handles);
 end
 
 
@@ -189,9 +200,10 @@ set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame-1;
 axes(handles.axesFigure);
 imshow(handles.data.imgSequence(:,:,handles.data.currentFrame));
+handles.data.playFlag=0;
 guidata(hObject, handles);
-drawnow;
-uiwait();
+
+
 
 
 
@@ -201,3 +213,12 @@ function buttonNextFrame_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonNextFrame (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+if handles.data.currentFrame==size(handles.data.imgSequence,3)
+    return;
+end
+set(handles.buttonPlayPause,'String','Play');
+handles.data.currentFrame=handles.data.currentFrame+1;
+axes(handles.axesFigure);
+imshow(handles.data.imgSequence(:,:,handles.data.currentFrame));
+handles.data.playFlag=0;
+guidata(hObject, handles);
