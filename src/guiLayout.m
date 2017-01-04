@@ -22,7 +22,7 @@ function varargout = guiLayout(varargin)
 
 % Edit the above text to modify the response to help guiLayout
 
-% Last Modified by GUIDE v2.5 30-Dec-2016 13:04:54
+% Last Modified by GUIDE v2.5 03-Jan-2017 16:23:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,7 +54,13 @@ function guiLayout_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for guiLayout
 handles.output = hObject;
-
+set(handles.buttonPlayPause,'Enable','off');
+set(handles.buttonPrevFrame,'Enable','off');
+set(handles.buttonNextFrame,'Enable','off');
+I=zeros(480,640);
+axes(handles.axesFigure);
+imshow(I);
+drawnow;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -100,6 +106,26 @@ function buttonLoad_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonLoad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+[vidFile,vidFilePath]=uigetfile('*.avi'); %Filter .avi files
+vidFile=[vidFilePath,vidFile];
+videoSource = VideoReader(vidFile);
+handles.data.imgSequence=[]; %create ab array for the video images
+frameCount=1;
+while hasFrame(videoSource); %read frame, convert to grayscale and store it
+    I=readFrame(videoSource);
+    I=im2double(rgb2gray(I));
+    handles.data.imgSequence(:,:,frameCount)=I;
+    frameCount=frameCount+1;
+end
+handles.data.prImgSequence=zeros(size(handles.data.imgSequence)); %array for processed Frames
+handles.data.currentFrame=1;
+
+% Enable video controls after loading is complete
+set(handles.buttonPlayPause,'Enable','on'); 
+set(handles.buttonPrevFrame,'Enable','on');
+set(handles.buttonNextFrame,'Enable','on');
+guidata(hObject,handles);
+
 
 
 % --- Executes on button press in buttonExport.
@@ -114,6 +140,7 @@ function buttonCorrect_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonCorrect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+display('hello')
 
 
 % --- Executes during object creation, after setting all properties.
@@ -121,7 +148,56 @@ function axesFigure_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to axesFigure (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-I=zeros(480,640);
-imshow(I,'parent',hObject);
+
+
 
 % Hint: place code in OpeningFcn to populate axesFigure
+
+
+% --- Executes on button press in buttonPlayPause.
+function buttonPlayPause_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonPlayPause (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video after loading it
+%     uiresume();
+    set(handles.buttonPlayPause,'String','Pause'); 
+%     handles.data.currentFrame=1;
+    for i=[handles.data.currentFrame:size(handles.data.imgSequence,3)]
+        handles.data.currentFrame=i;
+        axes(handles.axesFigure);
+        imshow(handles.data.imgSequence(:,:,i));
+        guidata(hObject, handles);
+        drawnow;
+    end
+else
+        set(handles.buttonPlayPause,'String','Play');
+        uiwait();
+end
+
+
+% --- Executes on button press in buttonPrevFrame.
+function buttonPrevFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonPrevFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Pause the video, then reduce the frame by 1
+if handles.data.currentFrame<=1
+    return;
+end
+set(handles.buttonPlayPause,'String','Play');
+handles.data.currentFrame=handles.data.currentFrame-1;
+axes(handles.axesFigure);
+imshow(handles.data.imgSequence(:,:,handles.data.currentFrame));
+guidata(hObject, handles);
+drawnow;
+uiwait();
+
+
+
+
+% --- Executes on button press in buttonNextFrame.
+function buttonNextFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonNextFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
