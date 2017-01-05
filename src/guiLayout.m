@@ -54,6 +54,7 @@ function guiLayout_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for guiLayout
 handles.output = hObject;
+set(handles.buttonPlayPause,'String','Play'); 
 set(handles.buttonPlayPause,'Enable','off');
 set(handles.buttonPrevFrame,'Enable','off');
 set(handles.buttonNextFrame,'Enable','off');
@@ -91,7 +92,7 @@ value=handles.sliderVid.Value;
 value=round(value,0);
 handles.data.currentFrame=value;
 axes(handles.axesFigure);
-imshow(handles.data.imgSequence(:,:,handles.data.currentFrame));
+imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
 guidata(hObject,handles);
 
 
@@ -117,14 +118,26 @@ function buttonLoad_Callback(hObject, eventdata, handles)
 vidFile=[vidFilePath,vidFile];
 videoSource = VideoReader(vidFile);
 handles.data.imgSequence=[]; %create ab array for the video images
+handles.data.prImgSequence=[];
 frameCount=1;
 while hasFrame(videoSource); %read frame, convert to grayscale and store it
     I=readFrame(videoSource);
     I=im2double(rgb2gray(I));
     handles.data.imgSequence(:,:,frameCount)=I;
+    points=getPoints(handles.data.imgSequence(:,:,frameCount),20);
+    if ~(isequal(points.head,[0 0])||isequal(points.body,[0 0]))
+        mask=zeros(size(handles.data.imgSequence(:,:,frameCount)));
+        mask(points.head(1,1),points.head(1,2))=1;
+        mask(points.body(1,1),points.body(1,2))=1;
+        mask(points.tail(1,1),points.tail(1,2))=1;
+        se=strel('disk',3);
+        mask=imdilate(mask,se);
+        handles.data.prImgSequence(:,:,frameCount)=imadd(handles.data.imgSequence(:,:,frameCount),im2double(mask));
+    else
+        handles.data.prImgSequence(:,:,frameCount)=handles.data.imgSequence(:,:,frameCount);
+    end
     frameCount=frameCount+1;
 end
-handles.data.prImgSequence=zeros(size(handles.data.imgSequence)); %array for processed Frames
 handles.data.currentFrame=1;
 handles.data.playFlag=1;
 % Enable video controls after loading is complete
@@ -181,7 +194,8 @@ if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video a
         guidata(hObject, handles);
         handles.data.currentFrame=i;
         axes(handles.axesFigure);
-        imshow(handles.data.imgSequence(:,:,i));
+        
+        imshow(handles.data.prImgSequence(:,:,i));
         handles.sliderVid.Value=i;
         guidata(hObject, handles);
         drawnow;
@@ -216,7 +230,7 @@ end
 set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame-1;
 axes(handles.axesFigure);
-imshow(handles.data.imgSequence(:,:,handles.data.currentFrame));
+imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
 handles.data.playFlag=0;
 guidata(hObject, handles);
 
@@ -236,6 +250,6 @@ end
 set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame+1;
 axes(handles.axesFigure);
-imshow(handles.data.imgSequence(:,:,handles.data.currentFrame));
+imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
 handles.data.playFlag=0;
 guidata(hObject, handles);
