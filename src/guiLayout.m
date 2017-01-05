@@ -22,7 +22,7 @@ function varargout = guiLayout(varargin)
 
 % Edit the above text to modify the response to help guiLayout
 
-% Last Modified by GUIDE v2.5 03-Jan-2017 16:23:19
+% Last Modified by GUIDE v2.5 05-Jan-2017 09:57:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,6 +58,7 @@ set(handles.buttonPlayPause,'String','Play');
 set(handles.buttonPlayPause,'Enable','off');
 set(handles.buttonPrevFrame,'Enable','off');
 set(handles.buttonNextFrame,'Enable','off');
+set(handles.sliderVid,'Enable','off');
 I=zeros(480,640);
 axes(handles.axesFigure);
 imshow(I);
@@ -96,6 +97,19 @@ imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
 guidata(hObject,handles);
 
 
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over sliderVid.
+function sliderVid_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to sliderVid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% value=handles.sliderVid.Value;
+% value=round(value,0);
+% handles.data.currentFrame=value;
+% axes(handles.axesFigure);
+% imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
+% guidata(hObject,handles);
+
 
 % --- Executes during object creation, after setting all properties.
 function sliderVid_CreateFcn(hObject, eventdata, handles)
@@ -114,6 +128,11 @@ function buttonLoad_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonLoad (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+set(handles.buttonPlayPause,'String','Play'); 
+set(handles.buttonPlayPause,'Enable','off');
+set(handles.buttonPrevFrame,'Enable','off');
+set(handles.buttonNextFrame,'Enable','off');
+set(handles.sliderVid,'Enable','off');
 [vidFile,vidFilePath]=uigetfile('*.avi'); %Filter .avi files
 vidFile=[vidFilePath,vidFile];
 videoSource = VideoReader(vidFile);
@@ -122,6 +141,7 @@ handles.data.prImgSequence=[];
 frameCount=1;
 while hasFrame(videoSource); %read frame, convert to grayscale and store it
     I=readFrame(videoSource);
+    set(handles.textConsoleWindow,'String',['Analyzing Frame ',num2str(frameCount)]);
     I=im2double(rgb2gray(I));
     handles.data.imgSequence(:,:,frameCount)=I;
     points=getPoints(handles.data.imgSequence(:,:,frameCount),20);
@@ -149,6 +169,8 @@ handles.sliderVid.SliderStep=[slidStep slidStep];
 set(handles.buttonPlayPause,'Enable','on'); 
 set(handles.buttonPrevFrame,'Enable','on');
 set(handles.buttonNextFrame,'Enable','on');
+set(handles.sliderVid,'Enable','on');
+set(handles.textConsoleWindow,'String','Ready');
 guidata(hObject,handles);
 
 
@@ -166,6 +188,26 @@ function buttonCorrect_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 display('hello')
+axes(handles.axesFigure);
+frame=handles.data.currentFrame;
+% imshow(handles.data.imgSequence(:,:,frame));
+handles.textConsoleWindow.String='Select points in the order - head, body, tail. Press Enter when done';
+[c r p]=impixel(handles.data.imgSequence(:,:,frame));
+if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handles.data.imgSequence,1))
+    handles.textConsoleWindow.String='Values out of bounds of the image, try again';
+    return;
+end
+handles.textConsoleWindow.String='';
+mask=zeros(size(handles.data.imgSequence(:,:,frame)));
+for i=[1:3]
+    mask(r(i),c(i))=1;
+end
+se=strel('disk',3);
+mask=im2double(imdilate(mask,se));
+handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
+guidata(hObject,handles);
+imshow(handles.data.prImgSequence(:,:,frame));
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -253,3 +295,27 @@ axes(handles.axesFigure);
 imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
 handles.data.playFlag=0;
 guidata(hObject, handles);
+
+
+
+function editConsole_Callback(hObject, eventdata, handles)
+% hObject    handle to editConsole (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editConsole as text
+%        str2double(get(hObject,'String')) returns contents of editConsole as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editConsole_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editConsole (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
