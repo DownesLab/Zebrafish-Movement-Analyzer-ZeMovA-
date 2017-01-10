@@ -58,6 +58,8 @@ set(handles.buttonPlayPause,'String','Play');
 set(handles.buttonPlayPause,'Enable','off');
 set(handles.buttonPrevFrame,'Enable','off');
 set(handles.buttonNextFrame,'Enable','off');
+set(handles.buttonExport,'Enable','off');
+set(handles.buttonCorrect,'Enable','off');
 set(handles.sliderVid,'Enable','off');
 I=zeros(480,640);
 axes(handles.axesFigure);
@@ -131,6 +133,8 @@ function buttonLoad_Callback(hObject, eventdata, handles)
 set(handles.buttonPlayPause,'String','Play'); 
 set(handles.buttonPlayPause,'Enable','off');
 set(handles.buttonPrevFrame,'Enable','off');
+set(handles.buttonExport,'Enable','off');
+set(handles.buttonCorrect,'Enable','off');
 set(handles.buttonNextFrame,'Enable','off');
 set(handles.sliderVid,'Enable','off');
 [vidFile,vidFilePath]=uigetfile('*.avi'); %Filter .avi files
@@ -138,14 +142,22 @@ vidFile=[vidFilePath,vidFile];
 videoSource = VideoReader(vidFile);
 handles.data.imgSequence=[]; %create ab array for the video images
 handles.data.prImgSequence=[];
+handles.data.points=cell(25);
+handles.data.frameTime=[];
+handles.data.pixelMM=31;
 frameCount=1;
 while hasFrame(videoSource); %read frame, convert to grayscale and store it
+    handles.data.frameTime(frameCount,1)=videoSource.currentTime;
     I=readFrame(videoSource);
     set(handles.textConsoleWindow,'String',['Analyzing Frame ',num2str(frameCount)]);
     I=im2double(rgb2gray(I));
     handles.data.imgSequence(:,:,frameCount)=I;
-    points=getPoints(handles.data.imgSequence(:,:,frameCount),20);
+    points=getPoints(handles.data.imgSequence(:,:,frameCount),20);  
     if ~(isequal(points.head,[0 0])||isequal(points.body,[0 0]))
+        v1=points.head-points.body;
+        v2=points.tail-points.body;
+        ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
+        points.angle=mod(-180/pi*ang,360);
         mask=zeros(size(handles.data.imgSequence(:,:,frameCount)));
         mask(points.head(1,1),points.head(1,2))=1;
         mask(points.body(1,1),points.body(1,2))=1;
@@ -154,8 +166,10 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         mask=imdilate(mask,se);
         handles.data.prImgSequence(:,:,frameCount)=imadd(handles.data.imgSequence(:,:,frameCount),im2double(mask));
     else
+        points.angle=-1;
         handles.data.prImgSequence(:,:,frameCount)=handles.data.imgSequence(:,:,frameCount);
     end
+    handles.data.points{frameCount}=points;
     frameCount=frameCount+1;
 end
 handles.data.currentFrame=1;
@@ -169,6 +183,8 @@ handles.sliderVid.SliderStep=[slidStep slidStep];
 set(handles.buttonPlayPause,'Enable','on'); 
 set(handles.buttonPrevFrame,'Enable','on');
 set(handles.buttonNextFrame,'Enable','on');
+set(handles.buttonExport,'Enable','on');
+set(handles.buttonCorrect,'Enable','on');
 set(handles.sliderVid,'Enable','on');
 set(handles.textConsoleWindow,'String','Ready');
 guidata(hObject,handles);
@@ -180,6 +196,34 @@ function buttonExport_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonExport (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+% Save analysis file and data
+
+data=handles.data;
+points=handles.data.points;
+headXY=[0 0];
+angVelocity=[];
+velocity=[];
+headXY(1,1)=points{1}.head(1)/data.pixelMM;
+headXY(1,2)=points{1}.head(2)/data.pixelMM;
+angVelocity(1,1)=0;
+velocity(1,1)=0;
+angle(1,1)=points{1}.angle;
+for i = [2:length(data.frameTime)]
+    angle(i,1)=points{i}.angle;
+    headXY(i,1)=points{i}.head(1)/data.pixelMM;
+    headXY(i,2)=points{i}.head(2)/data.pixelMM;
+    angVelocity(i,1)=(points{i}.angle-points{i-1}.angle)/(data.frameTime(i)-data.frameTime(i-1));
+    distance=sqrt((headXY(i,1)-headXY(i-1,1)).^2+(headXY(i,2)-headXY(i-1,2)).^2);
+    velocity(i,1)=distance/(data.frameTime(i)-data.frameTime(i-1));
+end
+Tbl=table(data.frameTime,angle,angVelocity,headXY(:,1),headXY(:,2),velocity,'VariableNames',{'Time','Curl','CurlVelocity','HeadPositionX','HeadPositionY','LinearVelocity'});
+[fName fPath]=uiputfile('*.xlsx', 'Save analysis data');
+writetable(Tbl,[fPath fName]);
+k=strfind(fName,'.');
+fName=fName(1:k-1);
+fName=[fName '.mat']
+save([fPath fName],'data');
+
 
 
 % --- Executes on button press in buttonCorrect.
@@ -187,10 +231,12 @@ function buttonCorrect_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonCorrect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-display('hello')
 axes(handles.axesFigure);
 frame=handles.data.currentFrame;
 % imshow(handles.data.imgSequence(:,:,frame));
+handles.data.points{frame}.head=[0 0];
+handles.data.points{frame}.body=[0 0];
+handles.data.points{frame}.tail=[0 0];
 handles.textConsoleWindow.String='Select points in the order - head, body, tail. Press Enter when done';
 [c r p]=impixel(handles.data.imgSequence(:,:,frame));
 if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handles.data.imgSequence,1))
@@ -201,7 +247,20 @@ handles.textConsoleWindow.String='';
 mask=zeros(size(handles.data.imgSequence(:,:,frame)));
 for i=[1:3]
     mask(r(i),c(i))=1;
+    switch i
+        case 1
+            handles.data.points{frame}.head=[r(i) c(i)];
+        case 2
+            handles.data.points{frame}.body=[r(i) c(i)];
+        case 3
+            handles.data.points{frame}.tail=[r(i) c(i)];
+    end
 end
+points=handles.data.points{frame};
+v1=points.head-points.body;
+v2=points.tail-points.body;
+ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
+handles.data.points{frame}.angle=mod(-180/pi*ang,360);
 se=strel('disk',3);
 mask=im2double(imdilate(mask,se));
 handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
