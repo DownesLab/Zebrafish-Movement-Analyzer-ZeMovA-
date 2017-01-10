@@ -22,7 +22,7 @@ function varargout = guiLayout(varargin)
 
 % Edit the above text to modify the response to help guiLayout
 
-% Last Modified by GUIDE v2.5 05-Jan-2017 09:57:33
+% Last Modified by GUIDE v2.5 10-Jan-2017 18:16:34
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -139,6 +139,9 @@ set(handles.buttonNextFrame,'Enable','off');
 set(handles.sliderVid,'Enable','off');
 [vidFile,vidFilePath]=uigetfile('*.avi'); %Filter .avi files
 vidFile=[vidFilePath,vidFile];
+if vidFile==0 %if dialog closed and no file selected
+    return;
+end
 videoSource = VideoReader(vidFile);
 handles.data.imgSequence=[]; %create ab array for the video images
 handles.data.prImgSequence=[];
@@ -226,6 +229,9 @@ for i = [2:length(data.frameTime)]
 end
 Tbl=table(data.frameTime,angle,angVelocity,headXY(:,1),headXY(:,2),velocity,'VariableNames',{'Time','Curl','CurlVelocity','HeadPositionX','HeadPositionY','LinearVelocity'});
 [fName fPath]=uiputfile('*.xlsx', 'Save analysis data');
+if fName==0 %if dialog closed and no file selected
+    return;
+end
 writetable(Tbl,[fPath fName]);
 k=strfind(fName,'.');
 fName=fName(1:k-1);
@@ -248,15 +254,7 @@ function buttonCorrect_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-set(handles.buttonLoad,'Enable','off');
-set(handles.buttonPlayPause,'Enable','off');
-set(handles.buttonPrevFrame,'Enable','off');
-set(handles.buttonExport,'Enable','off');
-set(handles.buttonCorrect,'Enable','off');
-set(handles.buttonNextFrame,'Enable','off');
-set(handles.sliderVid,'Enable','off');
-
-
+setEnable(hObject,handles,'off');
 
 axes(handles.axesFigure);
 frame=handles.data.currentFrame;
@@ -269,7 +267,7 @@ handles.textConsoleWindow.String='Select points in the order - head, body, tail.
 [c r p]=impixel(handles.data.imgSequence(:,:,frame));
 if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handles.data.imgSequence,1))
     handles.textConsoleWindow.String='Values out of bounds of the image, try again';
-    setEnable('on');
+    setEnable(hObject,handles,'on');
     return;
 end
 handles.textConsoleWindow.String='';
@@ -293,16 +291,9 @@ handles.data.points{frame}.angle=mod(-180/pi*ang,360);
 se=strel('disk',3);
 mask=im2double(imdilate(mask,se));
 handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
-guidata(hObject,handles);
 imshow(handles.data.prImgSequence(:,:,frame));
-
-set(handles.buttonLoad,'Enable','on');
-set(handles.buttonPlayPause,'Enable','on');
-set(handles.buttonPrevFrame,'Enable','on');
-set(handles.buttonExport,'Enable','on');
-set(handles.buttonCorrect,'Enable','on');
-set(handles.buttonNextFrame,'Enable','on');
-set(handles.sliderVid,'Enable','on');
+setEnable(hObject,handles,'on');
+guidata(hObject,handles);
 
 
 
@@ -417,7 +408,7 @@ end
 
 
 
-function setEnable(value)
+function setEnable(hObject,handles,value)
 set(handles.buttonLoad,'Enable',value);
 set(handles.buttonPlayPause,'Enable',value);
 set(handles.buttonPrevFrame,'Enable',value);
@@ -425,3 +416,48 @@ set(handles.buttonExport,'Enable',value);
 set(handles.buttonCorrect,'Enable',value);
 set(handles.buttonNextFrame,'Enable',value);
 set(handles.sliderVid,'Enable',value);
+set(handles.buttonLoadAnalysis,'Enable',value);
+
+
+% --- Executes on button press in buttonLoadAnalysis.
+function buttonLoadAnalysis_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonLoadAnalysis (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+set(handles.buttonPlayPause,'String','Play'); 
+set(handles.buttonPlayPause,'Enable','off');
+set(handles.buttonPrevFrame,'Enable','off');
+set(handles.buttonExport,'Enable','off');
+set(handles.buttonCorrect,'Enable','off');
+set(handles.buttonNextFrame,'Enable','off');
+set(handles.sliderVid,'Enable','off');
+[dataFile,dataPath]=uigetfile('*.mat'); %Filter .avi files
+if dataFile==0
+    return;
+end
+load([dataPath dataFile],'data');
+if exist('data')~=1
+    set(handles.textConsoleWindow,'String','The loaded file is not valid, please try again');
+    return;
+end
+handles.data=data;
+handles.data.currentFrame=1;
+handles.data.playFlag=1;
+handles.sliderVid.Value=1;
+handles.sliderVid.Min=1;
+handles.sliderVid.Max=length(handles.data.frameTime);
+slidStep=1.0/(handles.sliderVid.Max-1);
+handles.sliderVid.SliderStep=[slidStep slidStep];
+setEnable(hObject,handles,'on');
+handles.textConsoleWindow.String='Ready';
+guidata(hObject,handles);
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+delete(hObject);
