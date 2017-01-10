@@ -197,6 +197,14 @@ function buttonExport_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % Save analysis file and data
+set(handles.buttonLoad,'Enable','off');
+set(handles.buttonPlayPause,'Enable','off');
+set(handles.buttonPrevFrame,'Enable','off');
+set(handles.buttonExport,'Enable','off');
+set(handles.buttonCorrect,'Enable','off');
+set(handles.buttonNextFrame,'Enable','off');
+set(handles.sliderVid,'Enable','off');
+
 
 data=handles.data;
 points=handles.data.points;
@@ -224,6 +232,14 @@ fName=fName(1:k-1);
 fName=[fName '.mat']
 save([fPath fName],'data');
 
+set(handles.buttonLoad,'Enable','on');
+set(handles.buttonPlayPause,'Enable','on');
+set(handles.buttonPrevFrame,'Enable','on');
+set(handles.buttonExport,'Enable','on');
+set(handles.buttonCorrect,'Enable','on');
+set(handles.buttonNextFrame,'Enable','on');
+set(handles.sliderVid,'Enable','on');
+
 
 
 % --- Executes on button press in buttonCorrect.
@@ -231,16 +247,29 @@ function buttonCorrect_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonCorrect (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+set(handles.buttonLoad,'Enable','off');
+set(handles.buttonPlayPause,'Enable','off');
+set(handles.buttonPrevFrame,'Enable','off');
+set(handles.buttonExport,'Enable','off');
+set(handles.buttonCorrect,'Enable','off');
+set(handles.buttonNextFrame,'Enable','off');
+set(handles.sliderVid,'Enable','off');
+
+
+
 axes(handles.axesFigure);
 frame=handles.data.currentFrame;
 % imshow(handles.data.imgSequence(:,:,frame));
 handles.data.points{frame}.head=[0 0];
 handles.data.points{frame}.body=[0 0];
 handles.data.points{frame}.tail=[0 0];
+
 handles.textConsoleWindow.String='Select points in the order - head, body, tail. Press Enter when done';
 [c r p]=impixel(handles.data.imgSequence(:,:,frame));
 if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handles.data.imgSequence,1))
     handles.textConsoleWindow.String='Values out of bounds of the image, try again';
+    setEnable('on');
     return;
 end
 handles.textConsoleWindow.String='';
@@ -266,6 +295,14 @@ mask=im2double(imdilate(mask,se));
 handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
 guidata(hObject,handles);
 imshow(handles.data.prImgSequence(:,:,frame));
+
+set(handles.buttonLoad,'Enable','on');
+set(handles.buttonPlayPause,'Enable','on');
+set(handles.buttonPrevFrame,'Enable','on');
+set(handles.buttonExport,'Enable','on');
+set(handles.buttonCorrect,'Enable','on');
+set(handles.buttonNextFrame,'Enable','on');
+set(handles.sliderVid,'Enable','on');
 
 
 
@@ -378,3 +415,13 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+
+
+function setEnable(value)
+set(handles.buttonLoad,'Enable',value);
+set(handles.buttonPlayPause,'Enable',value);
+set(handles.buttonPrevFrame,'Enable',value);
+set(handles.buttonExport,'Enable',value);
+set(handles.buttonCorrect,'Enable',value);
+set(handles.buttonNextFrame,'Enable',value);
+set(handles.sliderVid,'Enable',value);
