@@ -22,7 +22,7 @@ function varargout = guiLayout(varargin)
 
 % Edit the above text to modify the response to help guiLayout
 
-% Last Modified by GUIDE v2.5 10-Jan-2017 18:16:34
+% Last Modified by GUIDE v2.5 19-Jan-2017 21:01:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -96,6 +96,8 @@ value=round(value,0);
 handles.data.currentFrame=value;
 axes(handles.axesFigure);
 imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
+handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame}.angle);
+handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 guidata(hObject,handles);
 
 
@@ -143,6 +145,7 @@ if vidFile==0 %if dialog closed and no file selected
     return;
 end
 videoSource = VideoReader(vidFile);
+handles.data.blockMask=zeros(videoSource.Height,videoSource.Width);
 handles.data.imgSequence=[]; %create ab array for the video images
 handles.data.prImgSequence=[];
 handles.data.points=cell(25);
@@ -160,7 +163,7 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         v1=points.head-points.body;
         v2=points.tail-points.body;
         ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
-        points.angle=mod(-180/pi*ang,360);
+        points.angle=round(mod(-180/pi*ang,360),1);
         mask=zeros(size(handles.data.imgSequence(:,:,frameCount)));
         mask(points.head(1,1),points.head(1,2))=1;
         mask(points.body(1,1),points.body(1,2))=1;
@@ -175,6 +178,7 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
     handles.data.points{frameCount}=points;
     frameCount=frameCount+1;
 end
+handles.data.nFrames=frameCount-1;
 handles.data.currentFrame=1;
 handles.data.playFlag=1;
 % Enable video controls after loading is complete
@@ -200,13 +204,7 @@ function buttonExport_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % Save analysis file and data
-set(handles.buttonLoad,'Enable','off');
-set(handles.buttonPlayPause,'Enable','off');
-set(handles.buttonPrevFrame,'Enable','off');
-set(handles.buttonExport,'Enable','off');
-set(handles.buttonCorrect,'Enable','off');
-set(handles.buttonNextFrame,'Enable','off');
-set(handles.sliderVid,'Enable','off');
+setEnable(handles,'off');
 
 
 data=handles.data;
@@ -230,21 +228,16 @@ end
 Tbl=table(data.frameTime,angle,angVelocity,headXY(:,1),headXY(:,2),velocity,'VariableNames',{'Time','Curl','CurlVelocity','HeadPositionX','HeadPositionY','LinearVelocity'});
 [fName fPath]=uiputfile('*.xlsx', 'Save analysis data');
 if fName==0 %if dialog closed and no file selected
+    setEnable(handles,'on');
     return;
 end
 writetable(Tbl,[fPath fName]);
 k=strfind(fName,'.');
 fName=fName(1:k-1);
-fName=[fName '.mat']
+fName=[fName '.mat'];
 save([fPath fName],'data');
 
-set(handles.buttonLoad,'Enable','on');
-set(handles.buttonPlayPause,'Enable','on');
-set(handles.buttonPrevFrame,'Enable','on');
-set(handles.buttonExport,'Enable','on');
-set(handles.buttonCorrect,'Enable','on');
-set(handles.buttonNextFrame,'Enable','on');
-set(handles.sliderVid,'Enable','on');
+setEnable(handles,'on');
 
 
 
@@ -254,7 +247,7 @@ function buttonCorrect_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-setEnable(hObject,handles,'off');
+setEnable(handles,'off');
 
 axes(handles.axesFigure);
 frame=handles.data.currentFrame;
@@ -267,7 +260,7 @@ handles.textConsoleWindow.String='Select points in the order - head, body, tail.
 [c r p]=impixel(handles.data.imgSequence(:,:,frame));
 if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handles.data.imgSequence,1))
     handles.textConsoleWindow.String='Values out of bounds of the image, try again';
-    setEnable(hObject,handles,'on');
+    setEnable(handles,'on');
     return;
 end
 handles.textConsoleWindow.String='';
@@ -287,12 +280,12 @@ points=handles.data.points{frame};
 v1=points.head-points.body;
 v2=points.tail-points.body;
 ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
-handles.data.points{frame}.angle=mod(-180/pi*ang,360);
+handles.data.points{frame}.angle=round(mod(-180/pi*ang,360),1);
 se=strel('disk',3);
 mask=im2double(imdilate(mask,se));
 handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
 imshow(handles.data.prImgSequence(:,:,frame));
-setEnable(hObject,handles,'on');
+setEnable(handles,'on');
 guidata(hObject,handles);
 
 
@@ -322,8 +315,9 @@ if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video a
     while (i<=size(handles.data.imgSequence,3) && handles.data.playFlag==1)
         guidata(hObject, handles);
         handles.data.currentFrame=i;
+        handles.textAngleWindow.String=num2str(handles.data.points{i}.angle);
+        handles.textFrameWindow.String=sprintf('%d / %d',i,handles.data.nFrames);
         axes(handles.axesFigure);
-        
         imshow(handles.data.prImgSequence(:,:,i));
         handles.sliderVid.Value=i;
         guidata(hObject, handles);
@@ -360,7 +354,10 @@ set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame-1;
 axes(handles.axesFigure);
 imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
+handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame}.angle);
+handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 handles.data.playFlag=0;
+handles.sliderVid.Value=handles.data.currentFrame;
 guidata(hObject, handles);
 
 
@@ -380,6 +377,9 @@ set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame+1;
 axes(handles.axesFigure);
 imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
+handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame}.angle);
+handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
+handles.sliderVid.Value=handles.data.currentFrame;
 handles.data.playFlag=0;
 guidata(hObject, handles);
 
@@ -408,7 +408,7 @@ end
 
 
 
-function setEnable(hObject,handles,value)
+function setEnable(handles,value)
 set(handles.buttonLoad,'Enable',value);
 set(handles.buttonPlayPause,'Enable',value);
 set(handles.buttonPrevFrame,'Enable',value);
@@ -417,6 +417,8 @@ set(handles.buttonCorrect,'Enable',value);
 set(handles.buttonNextFrame,'Enable',value);
 set(handles.sliderVid,'Enable',value);
 set(handles.buttonLoadAnalysis,'Enable',value);
+set(handles.buttonCallibrate,'Enable',value);
+set(handles.buttonBlock,'Enable',value);
 
 
 % --- Executes on button press in buttonLoadAnalysis.
@@ -448,7 +450,7 @@ handles.sliderVid.Min=1;
 handles.sliderVid.Max=length(handles.data.frameTime);
 slidStep=1.0/(handles.sliderVid.Max-1);
 handles.sliderVid.SliderStep=[slidStep slidStep];
-setEnable(hObject,handles,'on');
+setEnable(handles,'on');
 handles.textConsoleWindow.String='Ready';
 guidata(hObject,handles);
 
@@ -461,3 +463,97 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 delete(hObject);
+
+
+% --- Executes on key press with focus on figure1 or any of its controls.
+function figure1_WindowKeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+if length(eventdata.Modifier)>=1 && strcmp(eventdata.Modifier{1},'control')
+    if strcmpi(eventdata.Key,'o') && strcmpi(handles.buttonLoadAnalysis.Enable,'on')
+        uicontrol(handles.buttonLoadAnalysis);
+        buttonLoadAnalysis_Callback(handles.buttonLoadAnalysis,[],handles);
+    elseif strcmpi(eventdata.Key,'n') && strcmpi(handles.buttonLoad.Enable,'on')
+        uicontrol(handles.buttonLoad);
+        buttonLoad_Callback(handles.buttonLoadAnalysis,[],handles);
+    elseif strcmpi(eventdata.Key,'s') && strcmpi(handles.buttonExport.Enable,'on')
+        uicontrol(handles.buttonExport);
+        buttonExport_Callback(handles.buttonExport,[],handles);
+    end
+elseif strcmpi(eventdata.Key,'p')&& strcmpi(handles.buttonPlayPause.Enable,'on')
+    uicontrol(handles.buttonPlayPause);
+    buttonPlayPause_Callback(handles.buttonPlayPause,[],handles);
+elseif strcmpi(eventdata.Key,'c')&& strcmpi(handles.buttonCorrect.Enable,'on')
+    uicontrol(handles.buttonCorrect);
+    buttonCorrect_Callback(handles.buttonCorrect,[],handles);
+elseif strcmpi(eventdata.Key,'a')&& strcmpi(handles.buttonPrevFrame.Enable,'on')
+    uicontrol(handles.buttonPrevFrame);
+    buttonPrevFrame_Callback(handles.buttonPrevFrame,[],handles);
+elseif strcmpi(eventdata.Key,'d')&& strcmpi(handles.buttonNextFrame.Enable,'on')
+    uicontrol(handles.buttonNextFrame);
+    buttonNextFrame_Callback(handles.buttonNextFrame,[],handles);
+end
+
+
+% --- Executes on button press in buttonHelp.
+function buttonHelp_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonHelp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+message=sprintf('The following are the shortcut keys (Case insensitive)\n');
+message=[message sprintf(' %-16s : %-6s\n','Load Video','Ctrl + N')];
+message=[message sprintf(' %-15s : %-6s\n','Load Analysis','Ctrl + O')];
+message=[message sprintf(' %-20s : %-6s\n','Correct','C')];
+message=[message sprintf(' %-14s : %-6s\n','Export Analysis','Ctrl + S')];
+message=[message sprintf(' %-17s : %-6s\n','Play / Pause','P')];
+message=[message sprintf(' %-14s : %-6s\n','Previous Frame','A')];
+message=[message sprintf(' %-17s : %-6s\n','Next Frame','D')];
+set(0,'DefaultAxesFontName','Algerian')
+uiwait(msgbox(message,'Help','modal'));
+
+% --- Executes on button press in buttonAbout.
+function buttonAbout_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonAbout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+message=sprintf('ZebraFish Analyzer v1.0 \n');
+message=[message sprintf('For any queries please contact Prof. Gerald B. Downes (gbdownes@bio.umass.edu)')];
+uiwait(msgbox(message,'About','modal'));
+
+
+% --- Executes on button press in buttonCallibrate.
+function buttonCallibrate_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonCallibrate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[scaleFile,scalePath]=uigetfile('*','Select the scale image');
+if(scaleFile==0)
+    return;
+end
+scale=imread([scalePath scaleFile]); 
+axes(handles.axesFigure);
+imshow(scale);
+handles.textConsoleWindow.String='Select the endpoints of the scale';
+[c r p]=impixel(scale);
+pixelDist=abs(c(2)-c(1));
+mmDist=inputdlg('Enter the distance in mm between the marked points');
+mmDist=mmDist{1}-'0';
+handles.data.pixelMM=floor(pixelDist*1.0/mmDist);
+guidata(hObject,handles);
+
+
+% --- Executes on button press in buttonBlock.
+function buttonBlock_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonBlock (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+axes(handles.axesFigure);
+handles.textConsoleWindow.String='Create the polygons to block';
+h=impoly;
+mask=h.createMask;
+handles.data.blockMask=handles.data.blockMask|mask;
+guidata(hObject,handles);
