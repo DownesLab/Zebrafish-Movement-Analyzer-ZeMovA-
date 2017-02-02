@@ -96,7 +96,7 @@ value=round(value,0);
 handles.data.currentFrame=value;
 axes(handles.axesFigure);
 imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
-handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame}.angle);
+handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame,1}.angle);
 handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 guidata(hObject,handles);
 
@@ -148,7 +148,7 @@ videoSource = VideoReader(vidFile);
 handles.data.blockMask=zeros(videoSource.Height,videoSource.Width);
 handles.data.imgSequence=[]; %create ab array for the video images
 handles.data.prImgSequence=[];
-handles.data.points=cell(25);
+handles.data.points=cell(25,1);
 handles.data.frameTime=[];
 handles.data.pixelMM=31;
 frameCount=1;
@@ -175,7 +175,7 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         points.angle=-1;
         handles.data.prImgSequence(:,:,frameCount)=handles.data.imgSequence(:,:,frameCount);
     end
-    handles.data.points{frameCount}=points;
+    handles.data.points{frameCount,1}=points;
     frameCount=frameCount+1;
 end
 handles.data.nFrames=frameCount-1;
@@ -252,9 +252,9 @@ setEnable(handles,'off');
 axes(handles.axesFigure);
 frame=handles.data.currentFrame;
 % imshow(handles.data.imgSequence(:,:,frame));
-handles.data.points{frame}.head=[0 0];
-handles.data.points{frame}.body=[0 0];
-handles.data.points{frame}.tail=[0 0];
+handles.data.points{frame,1}.head=[0 0];
+handles.data.points{frame,1}.body=[0 0];
+handles.data.points{frame,1}.tail=[0 0];
 
 handles.textConsoleWindow.String='Select points in the order - head, body, tail. Press Enter when done';
 [c r p]=impixel(handles.data.imgSequence(:,:,frame));
@@ -269,18 +269,18 @@ for i=[1:3]
     mask(r(i),c(i))=1;
     switch i
         case 1
-            handles.data.points{frame}.head=[r(i) c(i)];
+            handles.data.points{frame,1}.head=[r(i) c(i)];
         case 2
-            handles.data.points{frame}.body=[r(i) c(i)];
+            handles.data.points{frame,1}.body=[r(i) c(i)];
         case 3
-            handles.data.points{frame}.tail=[r(i) c(i)];
+            handles.data.points{frame,1}.tail=[r(i) c(i)];
     end
 end
-points=handles.data.points{frame};
+points=handles.data.points{frame,1};
 v1=points.head-points.body;
 v2=points.tail-points.body;
 ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
-handles.data.points{frame}.angle=round(mod(-180/pi*ang,360),1);
+handles.data.points{frame,1}.angle=round(mod(-180/pi*ang,360),1);
 se=strel('disk',3);
 mask=im2double(imdilate(mask,se));
 handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
@@ -315,7 +315,7 @@ if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video a
     while (i<=size(handles.data.imgSequence,3) && handles.data.playFlag==1)
         guidata(hObject, handles);
         handles.data.currentFrame=i;
-        handles.textAngleWindow.String=num2str(handles.data.points{i}.angle);
+        handles.textAngleWindow.String=num2str(handles.data.points{i,1}.angle);
         handles.textFrameWindow.String=sprintf('%d / %d',i,handles.data.nFrames);
         axes(handles.axesFigure);
         imshow(handles.data.prImgSequence(:,:,i));
@@ -354,7 +354,7 @@ set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame-1;
 axes(handles.axesFigure);
 imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
-handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame}.angle);
+handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame,1}.angle);
 handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 handles.data.playFlag=0;
 handles.sliderVid.Value=handles.data.currentFrame;
@@ -377,7 +377,7 @@ set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame+1;
 axes(handles.axesFigure);
 imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
-handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame}.angle);
+handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame,1}.angle);
 handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 handles.sliderVid.Value=handles.data.currentFrame;
 handles.data.playFlag=0;

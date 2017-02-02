@@ -18,6 +18,8 @@ function [pImg] = preProcess(Img, bThresh, minPixel)
     areaComp=cellfun(@numel,cc.PixelIdxList);
     [maxArea,maxAIdx]=max(areaComp);
     pImg=false(size(Img));
-    pImg(cc.PixelIdxList{maxAIdx})=true;
+    if(length(maxAIdx)>0)
+        pImg(cc.PixelIdxList{maxAIdx})=true;
+    end
 end
 
