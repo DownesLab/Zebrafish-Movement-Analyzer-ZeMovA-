@@ -95,7 +95,7 @@ value=handles.sliderVid.Value;
 value=round(value,0);
 handles.data.currentFrame=value;
 axes(handles.axesFigure);
-imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
+imshow(handles.data.prImgSequence(:,:,:,handles.data.currentFrame));
 handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame,1}.angle);
 handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 guidata(hObject,handles);
@@ -162,10 +162,11 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         v2=points.tail-points.body;
         ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
         points.angle=round(mod(-180/pi*ang,360),1)-180.0;
-        mask=zeros(size(handles.data.imgSequence(:,:,frameCount)),'uint8');
-        mask(points.head(1,1),points.head(1,2))=255;
-        mask(points.body(1,1),points.body(1,2))=255;
-        mask(points.tail(1,1),points.tail(1,2))=255;
+        sz=size(handles.data.imgSequence(:,:,frameCount));
+        mask=zeros(sz(1),sz(2),3,'uint8');
+        mask(points.head(1,1),points.head(1,2),1)=255;
+        mask(points.body(1,1),points.body(1,2),:)=255;
+        mask(points.tail(1,1),points.tail(1,2),:)=255;
         se=strel('disk',3);
         mask=imdilate(mask,se);
         
@@ -174,7 +175,7 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         cx=round(cx);
         cy=round(cy);
         for i = [1:length(cx)]
-            mask(cx(i),cy(i))=255;
+            mask(cx(i),cy(i),:)=255;
         end
         
         % Line between body and head
@@ -182,14 +183,16 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         cx=round(cx);
         cy=round(cy);
         for i = [1:length(cx)]
-            mask(cx(i),cy(i))=255;
+            mask(cx(i),cy(i),:)=255;
         end
+        mask(points.head(1,1),points.head(1,2),1)=255;
         
-        
-        handles.data.prImgSequence(:,:,frameCount)=imadd(handles.data.imgSequence(:,:,frameCount),mask);
+        rgbImage = cat(3, handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount));
+        handles.data.prImgSequence(:,:,:,frameCount)=imadd(rgbImage,mask);
     else
         points.angle=-1;
-        handles.data.prImgSequence(:,:,frameCount)=handles.data.imgSequence(:,:,frameCount);
+        rgbImage = cat(3, handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount));
+        handles.data.prImgSequence(:,:,:,frameCount)=rgbImage;
     end
     handles.data.points{frameCount,1}=points;
     frameCount=frameCount+1;
@@ -286,15 +289,18 @@ if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handl
     return;
 end
 handles.textConsoleWindow.String='';
-mask=zeros(size(handles.data.imgSequence(:,:,frame)),'uint8');
+sz=size(handles.data.imgSequence(:,:,frame))
+mask=zeros(sz(1),sz(2),3,'uint8');
 for i=[1:3]
-    mask(r(i),c(i))=255;
     switch i
         case 1
+            mask(r(i),c(i),1)=255;
             handles.data.points{frame,1}.head=[r(i) c(i)];
         case 2
+            mask(r(i),c(i),:)=255;
             handles.data.points{frame,1}.body=[r(i) c(i)];
         case 3
+            mask(r(i),c(i),:)=255;
             handles.data.points{frame,1}.tail=[r(i) c(i)];
     end
 end
@@ -310,7 +316,7 @@ mask=imdilate(mask,se);
 cx=round(cx);
 cy=round(cy);
 for i = [1:length(cx)]
-    mask(cx(i),cy(i))=255;
+    mask(cx(i),cy(i),:)=255;
 end
 
 % Line between body and head
@@ -318,10 +324,11 @@ end
 cx=round(cx);
 cy=round(cy);
 for i = [1:length(cx)]
-    mask(cx(i),cy(i))=255;
+    mask(cx(i),cy(i),:)=255;
 end
-handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
-imshow(handles.data.prImgSequence(:,:,frame));
+rgbImage = cat(3, handles.data.imgSequence(:,:,frame),handles.data.imgSequence(:,:,frame),handles.data.imgSequence(:,:,frame));
+handles.data.prImgSequence(:,:,:,frame)=imadd(rgbImage,mask);
+imshow(handles.data.prImgSequence(:,:,:,frame));
 setEnable(handles,'on');
 guidata(hObject,handles);
 
@@ -355,7 +362,7 @@ if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video a
         handles.textAngleWindow.String=num2str(handles.data.points{i,1}.angle);
         handles.textFrameWindow.String=sprintf('%d / %d',i,handles.data.nFrames);
         axes(handles.axesFigure);
-        imshow(handles.data.prImgSequence(:,:,i));
+        imshow(handles.data.prImgSequence(:,:,:,i));
         handles.sliderVid.Value=i;
         guidata(hObject, handles);
         drawnow;
@@ -390,7 +397,7 @@ end
 set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame-1;
 axes(handles.axesFigure);
-imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
+imshow(handles.data.prImgSequence(:,:,:,handles.data.currentFrame));
 handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame,1}.angle);
 handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 handles.data.playFlag=0;
@@ -407,13 +414,14 @@ function buttonNextFrame_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonNextFrame (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if handles.data.currentFrame==size(handles.data.imgSequence,3)
+
+if handles.data.currentFrame==size(handles.data.imgSequence,3) %Check if the current frame is the last one
     return;
 end
 set(handles.buttonPlayPause,'String','Play');
 handles.data.currentFrame=handles.data.currentFrame+1;
 axes(handles.axesFigure);
-imshow(handles.data.prImgSequence(:,:,handles.data.currentFrame));
+imshow(handles.data.prImgSequence(:,:,:,handles.data.currentFrame));
 handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame,1}.angle);
 handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
 handles.sliderVid.Value=handles.data.currentFrame;
