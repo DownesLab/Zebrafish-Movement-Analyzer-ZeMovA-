@@ -146,31 +146,47 @@ if vidFile==0 %if dialog closed and no file selected
 end
 videoSource = VideoReader(vidFile);
 handles.data.blockMask=zeros(videoSource.Height,videoSource.Width);
-handles.data.imgSequence=[]; %create ab array for the video images
-handles.data.prImgSequence=[];
+handles.data.imgSequence=uint8([]); %create ab array for the video images
+handles.data.prImgSequence=uint8([]);
 handles.data.points=cell(25,1);
-handles.data.frameTime=[];
 handles.data.pixelMM=31;
 frameCount=1;
 while hasFrame(videoSource); %read frame, convert to grayscale and store it
-    handles.data.frameTime(frameCount,1)=videoSource.currentTime;
     I=readFrame(videoSource);
     set(handles.textConsoleWindow,'String',['Analyzing Frame ',num2str(frameCount)]);
-    I=im2double(rgb2gray(I));
+    I=rgb2gray(I);
     handles.data.imgSequence(:,:,frameCount)=I;
     points=getPoints(handles.data.imgSequence(:,:,frameCount),20);  
     if ~(isequal(points.head,[0 0])||isequal(points.body,[0 0]))
         v1=points.head-points.body;
         v2=points.tail-points.body;
         ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
-        points.angle=round(mod(-180/pi*ang,360),1);
-        mask=zeros(size(handles.data.imgSequence(:,:,frameCount)));
-        mask(points.head(1,1),points.head(1,2))=1;
-        mask(points.body(1,1),points.body(1,2))=1;
-        mask(points.tail(1,1),points.tail(1,2))=1;
+        points.angle=round(mod(-180/pi*ang,360),1)-180.0;
+        mask=zeros(size(handles.data.imgSequence(:,:,frameCount)),'uint8');
+        mask(points.head(1,1),points.head(1,2))=255;
+        mask(points.body(1,1),points.body(1,2))=255;
+        mask(points.tail(1,1),points.tail(1,2))=255;
         se=strel('disk',3);
         mask=imdilate(mask,se);
-        handles.data.prImgSequence(:,:,frameCount)=imadd(handles.data.imgSequence(:,:,frameCount),im2double(mask));
+        
+        % Line between body tail points
+        [cx cy c]=improfile(mask,[points.body(1,1) points.tail(1,1)],[points.body(1,2) points.tail(1,2)]);
+        cx=round(cx);
+        cy=round(cy);
+        for i = [1:length(cx)]
+            mask(cx(i),cy(i))=255;
+        end
+        
+        % Line between body and head
+        [cx cy c]=improfile(mask,[points.body(1,1) points.head(1,1)],[points.body(1,2) points.head(1,2)]);
+        cx=round(cx);
+        cy=round(cy);
+        for i = [1:length(cx)]
+            mask(cx(i),cy(i))=255;
+        end
+        
+        
+        handles.data.prImgSequence(:,:,frameCount)=imadd(handles.data.imgSequence(:,:,frameCount),mask);
     else
         points.angle=-1;
         handles.data.prImgSequence(:,:,frameCount)=handles.data.imgSequence(:,:,frameCount);
@@ -217,7 +233,13 @@ headXY(1,2)=points{1}.head(2)/data.pixelMM;
 angVelocity(1,1)=0;
 velocity(1,1)=0;
 angle(1,1)=points{1}.angle;
-for i = [2:length(data.frameTime)]
+fps=inputdlg('Enter the recorded frames per second rate of the video');
+fps=str2num(fps{1})
+durationPerFrameMS=1000/fps
+data.frameTime=zeros(data.nFrames,1)
+data.frameTime(1)=0
+for i = [2:data.nFrames]
+    data.frameTime(i)=(i-1)*durationPerFrameMS
     angle(i,1)=points{i}.angle;
     headXY(i,1)=points{i}.head(1)/data.pixelMM;
     headXY(i,2)=points{i}.head(2)/data.pixelMM;
@@ -264,9 +286,9 @@ if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handl
     return;
 end
 handles.textConsoleWindow.String='';
-mask=zeros(size(handles.data.imgSequence(:,:,frame)));
+mask=zeros(size(handles.data.imgSequence(:,:,frame)),'uint8');
 for i=[1:3]
-    mask(r(i),c(i))=1;
+    mask(r(i),c(i))=255;
     switch i
         case 1
             handles.data.points{frame,1}.head=[r(i) c(i)];
@@ -280,9 +302,24 @@ points=handles.data.points{frame,1};
 v1=points.head-points.body;
 v2=points.tail-points.body;
 ang=atan2(v1(1)*v2(2)-v2(1)*v1(2),v1(1)*v2(1)+v1(2)*v2(2));
-handles.data.points{frame,1}.angle=round(mod(-180/pi*ang,360),1);
+handles.data.points{frame,1}.angle=round(mod(-180/pi*ang,360),1)-180.0;
 se=strel('disk',3);
-mask=im2double(imdilate(mask,se));
+mask=imdilate(mask,se);
+% Line between body tail points
+[cx cy c]=improfile(mask,[points.body(1,1) points.tail(1,1)],[points.body(1,2) points.tail(1,2)]);
+cx=round(cx);
+cy=round(cy);
+for i = [1:length(cx)]
+    mask(cx(i),cy(i))=255;
+end
+
+% Line between body and head
+[cx cy c]=improfile(mask,[points.body(1,1) points.head(1,1)],[points.body(1,2) points.head(1,2)]);
+cx=round(cx);
+cy=round(cy);
+for i = [1:length(cx)]
+    mask(cx(i),cy(i))=255;
+end
 handles.data.prImgSequence(:,:,frame)=imadd(handles.data.imgSequence(:,:,frame),mask);
 imshow(handles.data.prImgSequence(:,:,frame));
 setEnable(handles,'on');

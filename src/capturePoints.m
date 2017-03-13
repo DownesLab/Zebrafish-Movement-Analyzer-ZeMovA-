@@ -1,6 +1,6 @@
 h=figure('Position', [100, 00, 1300, 1000]);
-prefix='b';
-for  i = [1 :11]
+prefix='a';
+for  i = [1 :1]
    videoSource = VideoReader(strcat('../Mittal share/',prefix,'_',int2str(i),'.avi'));
    frameCount=1;
    I=readFrame(videoSource);
@@ -41,7 +41,7 @@ for  i = [1 :11]
         
         mask=zeros(size(originalI));
         hp=headPoint(head,skel,I);
-        if isequal(hp,[0,0])
+        if isequal(hp,[0 0])
             continue;
         end
         [bdRC,tailRC]=detectBodyTail(hp,skel,20);

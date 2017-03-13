@@ -39,8 +39,8 @@ function dImg=detectHeadRegion(img)
 % then sharpen the image, filter it using a gaussian filter and
 % finally binarize it.
 % dImg : A mask for the head region
-% img : The input image
-        img=im2double(img); 
+% img : The input image 
+        img=im2double(img); % Double required for imbinarize (threshold should be in double)
         img=imcomplement(img);
         img=imclearborder(img,4);
         se=strel('square',5);
