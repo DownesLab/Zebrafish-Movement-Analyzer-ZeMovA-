@@ -151,7 +151,7 @@ handles.data.prImgSequence=uint8([]);
 handles.data.points=cell(25,1);
 handles.data.pixelMM=31;
 frameCount=1;
-while hasFrame(videoSource); %read frame, convert to grayscale and store it
+while hasFrame(videoSource) %read frame, convert to grayscale and store it
     I=readFrame(videoSource);
     set(handles.textConsoleWindow,'String',['Analyzing Frame ',num2str(frameCount)]);
     I=rgb2gray(I);
@@ -171,18 +171,18 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         mask=imdilate(mask,se);
         
         % Line between body tail points
-        [cx cy c]=improfile(mask,[points.body(1,1) points.tail(1,1)],[points.body(1,2) points.tail(1,2)]);
+        [cx, cy, ~]=improfile(mask,[points.body(1,1) points.tail(1,1)],[points.body(1,2) points.tail(1,2)]);
         cx=round(cx);
         cy=round(cy);
-        for i = [1:length(cx)]
+        for i = 1:length(cx)
             mask(cx(i),cy(i),:)=255;
         end
         
         % Line between body and head
-        [cx cy c]=improfile(mask,[points.body(1,1) points.head(1,1)],[points.body(1,2) points.head(1,2)]);
+        [cx, cy, ~]=improfile(mask,[points.body(1,1) points.head(1,1)],[points.body(1,2) points.head(1,2)]);
         cx=round(cx);
         cy=round(cy);
-        for i = [1:length(cx)]
+        for i = 1:length(cx)
             mask(cx(i),cy(i),:)=255;
         end
         mask(points.head(1,1),points.head(1,2),1)=255;
@@ -190,7 +190,7 @@ while hasFrame(videoSource); %read frame, convert to grayscale and store it
         rgbImage = cat(3, handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount));
         handles.data.prImgSequence(:,:,:,frameCount)=imadd(rgbImage,mask);
     else
-        points.angle=-1;
+        points.angle=500;
         rgbImage = cat(3, handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount));
         handles.data.prImgSequence(:,:,:,frameCount)=rgbImage;
     end
@@ -228,21 +228,22 @@ setEnable(handles,'off');
 
 data=handles.data;
 points=handles.data.points;
-headXY=[0 0];
-angVelocity=[];
-velocity=[];
+headXY=single(zeros(data.nFrames,2));
 headXY(1,1)=points{1}.head(1)/data.pixelMM;
 headXY(1,2)=points{1}.head(2)/data.pixelMM;
+angVelocity=single(zeros(data.nFrames,1));
+velocity=single(zeros(data.nFrames,1));
 angVelocity(1,1)=0;
 velocity(1,1)=0;
+angle=single(zeros(data.nFrames,1));
 angle(1,1)=points{1}.angle;
 fps=inputdlg('Enter the recorded frames per second rate of the video');
-fps=str2num(fps{1})
-durationPerFrameMS=1000/fps
-data.frameTime=zeros(data.nFrames,1)
-data.frameTime(1)=0
+fps=str2num(fps{1});
+durationPerFrameMS=1000/fps;
+data.frameTime=zeros(data.nFrames,1);
+data.frameTime(1)=0;
 for i = [2:data.nFrames]
-    data.frameTime(i)=(i-1)*durationPerFrameMS
+    data.frameTime(i)=(i-1)*durationPerFrameMS;
     angle(i,1)=points{i}.angle;
     headXY(i,1)=points{i}.head(1)/data.pixelMM;
     headXY(i,2)=points{i}.head(2)/data.pixelMM;
@@ -251,7 +252,7 @@ for i = [2:data.nFrames]
     velocity(i,1)=distance/(data.frameTime(i)-data.frameTime(i-1));
 end
 Tbl=table(data.frameTime,angle,angVelocity,headXY(:,1),headXY(:,2),velocity,'VariableNames',{'Time','Curl','CurlVelocity','HeadPositionX','HeadPositionY','LinearVelocity'});
-[fName fPath]=uiputfile('*.xlsx', 'Save analysis data');
+[fName, fPath]=uiputfile('*.xlsx', 'Save analysis data');
 if fName==0 %if dialog closed and no file selected
     setEnable(handles,'on');
     return;
@@ -282,16 +283,16 @@ handles.data.points{frame,1}.body=[0 0];
 handles.data.points{frame,1}.tail=[0 0];
 
 handles.textConsoleWindow.String='Select points in the order - head, body, tail. Press Enter when done';
-[c r p]=impixel(handles.data.imgSequence(:,:,frame));
+[c, r, ~]=impixel(handles.data.imgSequence(:,:,frame));
 if any(c<0)||any(r<0)||any(c>size(handles.data.imgSequence,2))||any(r>size(handles.data.imgSequence,1))
     handles.textConsoleWindow.String='Values out of bounds of the image, try again';
     setEnable(handles,'on');
     return;
 end
 handles.textConsoleWindow.String='';
-sz=size(handles.data.imgSequence(:,:,frame))
+sz=size(handles.data.imgSequence(:,:,frame));
 mask=zeros(sz(1),sz(2),3,'uint8');
-for i=[1:3]
+for i=1:3
     switch i
         case 1
             mask(r(i),c(i),1)=255;
@@ -312,7 +313,7 @@ handles.data.points{frame,1}.angle=round(mod(-180/pi*ang,360),1)-180.0;
 se=strel('disk',3);
 mask=imdilate(mask,se);
 % Line between body tail points
-[cx cy c]=improfile(mask,[points.body(1,1) points.tail(1,1)],[points.body(1,2) points.tail(1,2)]);
+[cx, cy, ~]=improfile(mask,[points.body(1,1) points.tail(1,1)],[points.body(1,2) points.tail(1,2)]);
 cx=round(cx);
 cy=round(cy);
 for i = [1:length(cx)]
@@ -320,7 +321,7 @@ for i = [1:length(cx)]
 end
 
 % Line between body and head
-[cx cy c]=improfile(mask,[points.body(1,1) points.head(1,1)],[points.body(1,2) points.head(1,2)]);
+[cx, cy, ~]=improfile(mask,[points.body(1,1) points.head(1,1)],[points.body(1,2) points.head(1,2)]);
 cx=round(cx);
 cy=round(cy);
 for i = [1:length(cx)]
