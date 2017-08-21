@@ -22,7 +22,7 @@ function varargout = guiLayout(varargin)
 
 % Edit the above text to modify the response to help guiLayout
 
-% Last Modified by GUIDE v2.5 19-Jan-2017 21:01:15
+% Last Modified by GUIDE v2.5 21-Aug-2017 08:53:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,6 +61,8 @@ set(handles.buttonNextFrame,'Enable','off');
 set(handles.buttonExport,'Enable','off');
 set(handles.buttonCorrect,'Enable','off');
 set(handles.sliderVid,'Enable','off');
+set(handles.buttonNextUFrame,'Enable','off');
+set(handles.buttonPrevUFrame,'Enable','off');
 I=zeros(480,640);
 axes(handles.axesFigure);
 imshow(I);
@@ -139,6 +141,8 @@ set(handles.buttonExport,'Enable','off');
 set(handles.buttonCorrect,'Enable','off');
 set(handles.buttonNextFrame,'Enable','off');
 set(handles.sliderVid,'Enable','off');
+set(handles.buttonNextUFrame,'Enable','off');
+set(handles.buttonPrevUFrame,'Enable','off');
 [vidFile,vidFilePath]=uigetfile('*.avi'); %Filter .avi files
 vidFile=[vidFilePath,vidFile];
 if vidFile==0 %if dialog closed and no file selected
@@ -150,6 +154,8 @@ handles.data.imgSequence=uint8([]); %create ab array for the video images
 handles.data.prImgSequence=uint8([]);
 handles.data.points=cell(25,1);
 handles.data.pixelMM=31;
+handles.data.udFrames=uint8([]);
+udFrameIndex=0;
 frameCount=1;
 while hasFrame(videoSource) %read frame, convert to grayscale and store it
     I=readFrame(videoSource);
@@ -190,6 +196,8 @@ while hasFrame(videoSource) %read frame, convert to grayscale and store it
         rgbImage = cat(3, handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount));
         handles.data.prImgSequence(:,:,:,frameCount)=imadd(rgbImage,mask);
     else
+        udFrameIndex=udFrameIndex+1;
+        handles.data.udFrames(udFrameIndex,1)=frameCount;
         points.angle=500;
         rgbImage = cat(3, handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount),handles.data.imgSequence(:,:,frameCount));
         handles.data.prImgSequence(:,:,:,frameCount)=rgbImage;
@@ -212,7 +220,9 @@ set(handles.buttonNextFrame,'Enable','on');
 set(handles.buttonExport,'Enable','on');
 set(handles.buttonCorrect,'Enable','on');
 set(handles.sliderVid,'Enable','on');
-set(handles.textConsoleWindow,'String','Ready');
+set(handles.textConsoleWindow,'String',strcat('Ready - Undetected Frames: ',num2str(udFrameIndex)));
+set(handles.buttonNextUFrame,'Enable','on');
+set(handles.buttonPrevUFrame,'Enable','on');
 guidata(hObject,handles);
 
 
@@ -352,9 +362,7 @@ function buttonPlayPause_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(strcmp(get(handles.buttonPlayPause,'String'),'Play')) %on running the video after loading it
-%     uiresume();
     set(handles.buttonPlayPause,'String','Pause'); 
-%     handles.data.currentFrame=1;
     handles.data.playFlag=1;
     i=handles.data.currentFrame;
     while (i<=size(handles.data.imgSequence,3) && handles.data.playFlag==1)
@@ -464,7 +472,8 @@ set(handles.buttonNextFrame,'Enable',value);
 set(handles.sliderVid,'Enable',value);
 set(handles.buttonLoadAnalysis,'Enable',value);
 set(handles.buttonCallibrate,'Enable',value);
-set(handles.buttonBlock,'Enable',value);
+set(handles.buttonNextUFrame,'Enable',value);
+set(handles.buttonPrevUFrame,'Enable',value);
 
 
 % --- Executes on button press in buttonLoadAnalysis.
@@ -592,14 +601,43 @@ handles.data.pixelMM=floor(pixelDist*1.0/mmDist);
 guidata(hObject,handles);
 
 
-% --- Executes on button press in buttonBlock.
-function buttonBlock_Callback(hObject, eventdata, handles)
-% hObject    handle to buttonBlock (see GCBO)
+% --- Executes on button press in buttonNextUFrame.
+function buttonNextUFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonNextUFrame (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-axes(handles.axesFigure);
-handles.textConsoleWindow.String='Create the polygons to block';
-h=impoly;
-mask=h.createMask;
-handles.data.blockMask=handles.data.blockMask|mask;
-guidata(hObject,handles);
+set(handles.buttonPlayPause,'String','Play');
+udFrames=handles.data.udFrames;
+% Not implementing a method like binary search because it won't be worth it
+udFrameIndex=find(handles.data.udFrames>handles.data.currentFrame); 
+if ~isempty(udFrameIndex)
+    handles.data.currentFrame=udFrames(udFrameIndex(1));
+    axes(handles.axesFigure);
+    imshow(handles.data.prImgSequence(:,:,:,handles.data.currentFrame));
+    handles.textAngleWindow.String='';
+    handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
+    handles.sliderVid.Value=handles.data.currentFrame;
+end
+handles.data.playFlag=0;
+guidata(hObject, handles);
+
+
+% --- Executes on button press in buttonPrevUFrame.
+function buttonPrevUFrame_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonPrevUFrame (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+set(handles.buttonPlayPause,'String','Play');
+udFrames=handles.data.udFrames;
+% Not implementing a method like binary search because it won't be worth it
+udFrameIndex=find(handles.data.udFrames<handles.data.currentFrame); 
+if ~isempty(udFrameIndex)
+    handles.data.currentFrame=udFrames(udFrameIndex(length(udFrameIndex)));
+    axes(handles.axesFigure);
+    imshow(handles.data.prImgSequence(:,:,:,handles.data.currentFrame));
+    handles.textAngleWindow.String='';
+    handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
+    handles.sliderVid.Value=handles.data.currentFrame;
+end
+handles.data.playFlag=0;
+guidata(hObject, handles);
