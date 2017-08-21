@@ -1,4 +1,4 @@
-# Zebrafish Larvae Analyzer v1.0
+# ZebraFish Movement Analyzer (ZeMovA) v1.1
 
 ## Description
 This program is developed for analyzing high speed swimming behavior of zebrafish larvae and monitor the following features:

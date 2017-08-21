@@ -148,6 +148,7 @@ vidFile=[vidFilePath,vidFile];
 if vidFile==0 %if dialog closed and no file selected
     return;
 end
+set(handles.panelVid,'Title',vidFile);
 videoSource = VideoReader(vidFile);
 handles.data.blockMask=zeros(videoSource.Height,videoSource.Width);
 handles.data.imgSequence=uint8([]); %create ab array for the video images
@@ -214,6 +215,11 @@ handles.sliderVid.Min=1;
 handles.sliderVid.Max=frameCount-1;
 slidStep=1.0/(handles.sliderVid.Max-1);
 handles.sliderVid.SliderStep=[slidStep slidStep];
+axes(handles.axesFigure);
+imshow(handles.data.prImgSequence(:,:,:,handles.data.currentFrame));
+handles.textAngleWindow.String=num2str(handles.data.points{handles.data.currentFrame,1}.angle);
+handles.textFrameWindow.String=sprintf('%d / %d',handles.data.currentFrame,handles.data.nFrames);
+handles.sliderVid.Value=handles.data.currentFrame;
 set(handles.buttonPlayPause,'Enable','on'); 
 set(handles.buttonPrevFrame,'Enable','on');
 set(handles.buttonNextFrame,'Enable','on');
@@ -575,7 +581,7 @@ function buttonAbout_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonAbout (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-message=sprintf('ZebraFish Analyzer v1.0 \n');
+message=sprintf('ZebraFish Movement Analyzer (ZeMovA) v1.1 \n');
 message=[message sprintf('For any queries please contact Prof. Gerald B. Downes (gbdownes@bio.umass.edu)')];
 uiwait(msgbox(message,'About','modal'));
 
@@ -602,6 +608,8 @@ guidata(hObject,handles);
 
 
 % --- Executes on button press in buttonNextUFrame.
+% This method is called when the button Next Undetected Frame is
+% pressed
 function buttonNextUFrame_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonNextUFrame (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -623,6 +631,8 @@ guidata(hObject, handles);
 
 
 % --- Executes on button press in buttonPrevUFrame.
+% This method is called when the button Previous Undetected Frame is
+% pressed
 function buttonPrevUFrame_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonPrevUFrame (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
