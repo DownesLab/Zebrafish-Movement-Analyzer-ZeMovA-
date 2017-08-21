@@ -22,7 +22,7 @@ function varargout = guiLayout(varargin)
 
 % Edit the above text to modify the response to help guiLayout
 
-% Last Modified by GUIDE v2.5 20-Aug-2017 22:47:15
+% Last Modified by GUIDE v2.5 20-Aug-2017 23:13:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -610,7 +610,7 @@ pixelDist=abs(c(2)-c(1));
 mmDist=inputdlg('Enter the distance in mm between the marked points');
 mmDist=mmDist{1}-'0';
 handles.data.pixelMM=floor(pixelDist*1.0/mmDist);
-handles.textConsoleWindow.String='Callibration successful';
+handles.textConsoleWindow.String='Calibration successful';
 set(handles.buttonSaveCal,'Enable','on');
 guidata(hObject,handles);
 
@@ -668,7 +668,7 @@ function buttonSaveCal_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 pixelMM=handles.data.pixelMM
-[fName, fPath]=uiputfile('*.mat', 'Save callibration value');
+[fName, fPath]=uiputfile('*.mat', 'Save calibration value');
 save([fPath fName],'pixelMM');
 
 
@@ -678,9 +678,9 @@ function buttonLoadCal_Callback(hObject, eventdata, handles)
 % hObject    handle to buttonLoadCal (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-[fName, fPath]=uigetfile('*.mat', 'Select saved callibration file');
+[fName, fPath]=uigetfile('*.mat', 'Select saved calibration file');
 load([fPath fName]);
 handles.data.pixelMM=pixelMM;
-handles.textConsoleWindow.String='Callibration successful';
+handles.textConsoleWindow.String='Calibration successful';
 set(handles.buttonSaveCal,'Enable','on');
 guidata(hObject, handles);
