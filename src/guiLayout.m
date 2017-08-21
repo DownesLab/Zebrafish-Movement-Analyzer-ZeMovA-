@@ -22,7 +22,7 @@ function varargout = guiLayout(varargin)
 
 % Edit the above text to modify the response to help guiLayout
 
-% Last Modified by GUIDE v2.5 21-Aug-2017 08:53:16
+% Last Modified by GUIDE v2.5 20-Aug-2017 22:47:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,6 +63,7 @@ set(handles.buttonCorrect,'Enable','off');
 set(handles.sliderVid,'Enable','off');
 set(handles.buttonNextUFrame,'Enable','off');
 set(handles.buttonPrevUFrame,'Enable','off');
+set(handles.buttonSaveCal,'Enable','off');
 I=zeros(480,640);
 axes(handles.axesFigure);
 imshow(I);
@@ -144,6 +145,7 @@ set(handles.sliderVid,'Enable','off');
 set(handles.buttonNextUFrame,'Enable','off');
 set(handles.buttonPrevUFrame,'Enable','off');
 [vidFile,vidFilePath]=uigetfile('*.avi'); %Filter .avi files
+handles.data.fileName=vidFile;
 vidFile=[vidFilePath,vidFile];
 if vidFile==0 %if dialog closed and no file selected
     return;
@@ -268,7 +270,9 @@ for i = [2:data.nFrames]
     velocity(i,1)=distance/(data.frameTime(i)-data.frameTime(i-1));
 end
 Tbl=table(data.frameTime,angle,angVelocity,headXY(:,1),headXY(:,2),velocity,'VariableNames',{'Time','Curl','CurlVelocity','HeadPositionX','HeadPositionY','LinearVelocity'});
-[fName, fPath]=uiputfile('*.xlsx', 'Save analysis data');
+vidName=strsplit(handles.data.fileName,'.');
+defFileName=strcat(char(vidName(1,1)), '.xlsx');
+[fName, fPath]=uiputfile('*.xlsx', 'Save analysis data',defFileName);
 if fName==0 %if dialog closed and no file selected
     setEnable(handles,'on');
     return;
@@ -478,6 +482,8 @@ set(handles.buttonNextFrame,'Enable',value);
 set(handles.sliderVid,'Enable',value);
 set(handles.buttonLoadAnalysis,'Enable',value);
 set(handles.buttonCallibrate,'Enable',value);
+set(handles.buttonSaveCal,'Enable',value);
+set(handles.buttonLoadCal,'Enable',value);
 set(handles.buttonNextUFrame,'Enable',value);
 set(handles.buttonPrevUFrame,'Enable',value);
 
@@ -604,6 +610,8 @@ pixelDist=abs(c(2)-c(1));
 mmDist=inputdlg('Enter the distance in mm between the marked points');
 mmDist=mmDist{1}-'0';
 handles.data.pixelMM=floor(pixelDist*1.0/mmDist);
+handles.textConsoleWindow.String='Callibration successful';
+set(handles.buttonSaveCal,'Enable','on');
 guidata(hObject,handles);
 
 
@@ -650,4 +658,29 @@ if ~isempty(udFrameIndex)
     handles.sliderVid.Value=handles.data.currentFrame;
 end
 handles.data.playFlag=0;
+guidata(hObject, handles);
+
+
+% --- Executes on button press in buttonSaveCal.
+% This button saves callibration
+function buttonSaveCal_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonSaveCal (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+pixelMM=handles.data.pixelMM
+[fName, fPath]=uiputfile('*.mat', 'Save callibration value');
+save([fPath fName],'pixelMM');
+
+
+
+% --- Executes on button press in buttonLoadCal.
+function buttonLoadCal_Callback(hObject, eventdata, handles)
+% hObject    handle to buttonLoadCal (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[fName, fPath]=uigetfile('*.mat', 'Select saved callibration file');
+load([fPath fName]);
+handles.data.pixelMM=pixelMM;
+handles.textConsoleWindow.String='Callibration successful';
+set(handles.buttonSaveCal,'Enable','on');
 guidata(hObject, handles);
