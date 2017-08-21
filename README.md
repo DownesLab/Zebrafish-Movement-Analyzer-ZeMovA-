@@ -13,10 +13,16 @@ This program has the following requirements:
 
 - MATLAB 2016
 - Image Processing Toolbox
+- XCode8 for Mac
 
-## Steps to run
+## Installation instructions
 
 - Download the code from the bitbucket repository
+- In a Mac, you'll need to run mex -setup C++ from MATLAB command window 
+- Run skeleton.m
+- Run anaskel.m
+
+## Steps to run
 - Run guiLayout.m
 
 ## Contact

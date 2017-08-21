@@ -4,4 +4,4 @@
 % also the local radius at each point.
 
 disp('Compiling...  (You may need to execute ''mex -setup'' first.)');
-mex 'F:\ZebraFish\src\cpp\skeleton.cpp'
+mex './cpp/skeleton.cpp'
