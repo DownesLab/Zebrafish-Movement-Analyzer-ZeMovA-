@@ -178,10 +178,34 @@ function plotButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Get the selected plot type and fishes
 plotSelection=handles.plotMenu.Value;
+% The following are the current values for plot selections:
+% 1 - select plot (invalid)
+% 2 - body bend plot
+% 3 - body angle plot
+% 4 - trajectory plot
 fileNames=handles.fileListBox.String(handles.fileListBox.Value);
+cla(handles.plotAxes)
 if(plotSelection==2)
     obj=handles.fishObjs(char(fileNames(1)));
     plot(handles.plotAxes,obj.time,obj.bodyAngle,'-o','MarkerIndices',obj.bendCoordinates(:,1)/2)
     ylim(handles.plotAxes,[-180 180])
+elseif(plotSelection==3)
+    maxDuration=-1;
+    for i= 1:length(fileNames)
+        hold on
+        obj=handles.fishObjs(char(fileNames(i)));
+        plot(handles.plotAxes,obj.time,obj.bodyAngle)
+        maxDuration=max(maxDuration,obj.getDuration());
+    end
+    ylim(handles.plotAxes,[-180 180])
+    xlim(handles.plotAxes,[0 maxDuration+20])
+elseif (plotSelection==4)
+     for i= 1:length(fileNames)
+        hold on
+        obj=handles.fishObjs(char(fileNames(i)));
+        plot(handles.plotAxes,obj.getXCoordinatesFromOrigin,obj.getYCoordinatesFromOrigin)
+     end
+     ylim(handles.plotAxes,[-15 15])
+     xlim(handles.plotAxes,[-20 20])
 end
 guidata(hObject,handles);
