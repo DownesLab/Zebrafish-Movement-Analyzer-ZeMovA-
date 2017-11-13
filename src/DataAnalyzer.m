@@ -22,7 +22,7 @@ function varargout = DataAnalyzer(varargin)
 
 % Edit the above text to modify the response to help DataAnalyzer
 
-% Last Modified by GUIDE v2.5 31-Oct-2017 03:55:05
+% Last Modified by GUIDE v2.5 13-Nov-2017 21:12:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,7 +54,7 @@ function DataAnalyzer_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for DataAnalyzer
 handles.output = hObject;
-
+handles.fishObjs=containers.Map;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -93,7 +93,8 @@ if numElements==0
     handles.fileListBox.String={};
 end
 handles.fileListBox.String(numElements+1)={dataFileName};
-obj=KinematicAnalysis(tbl,true,[34, 226]);
+handles.fishObjs(dataFileName)=KinematicAnalysis(tbl,true,[34, 226]);
+% handles.fishObjs(dataFileName)=KinematicAnalysis(tbl,true,[42, 532]);
 guidata(hObject,handles);
 
 
@@ -105,6 +106,16 @@ function plotMenu_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns plotMenu contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from plotMenu
+if(handles.plotMenu.Value==2)
+    handles.fileListBox.Max=1;
+    handles.fileListBox.Min=1;
+    handles.fileListBox.Value=[1];
+else
+    handles.fileListBox.Max=10;
+    handles.fileListBox.Min=1;
+    handles.fileListBox.Value=[1];
+end
+guidata(hObject,handles);
 
 
 % --- Executes during object creation, after setting all properties.
@@ -158,3 +169,19 @@ function figure1_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+
+% --- Executes on button press in plotButton.
+function plotButton_Callback(hObject, eventdata, handles)
+% hObject    handle to plotButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Get the selected plot type and fishes
+plotSelection=handles.plotMenu.Value;
+fileNames=handles.fileListBox.String(handles.fileListBox.Value);
+if(plotSelection==2)
+    obj=handles.fishObjs(char(fileNames(1)));
+    plot(handles.plotAxes,obj.time,obj.bodyAngle,'-o','MarkerIndices',obj.bendCoordinates(:,1)/2)
+    ylim(handles.plotAxes,[-180 180])
+end
+guidata(hObject,handles);

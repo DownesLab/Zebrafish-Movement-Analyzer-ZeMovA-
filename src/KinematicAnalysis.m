@@ -150,6 +150,29 @@ classdef KinematicAnalysis
             end
             maxDist=max(distTravelled);
         end
+        
+        function [meanV, medianV, maxV] = getVelocityStatistics(obj)
+            meanV=mean(obj.linearVelocity);
+            medianV=median(obj.linearVelocity);
+            maxV=max(obj.linearVelocity);
+        end
+        
+        function [meanBA, medianBA, maxBA] = getBodyAngleStatistics(obj)
+            meanBA=mean(obj.bodyAngle);
+            medianBA=median(obj.bodyAngle);
+            maxBA=max(obj.bodyAngle);
+        end
+        
+        function [numBends, freqBends, numHighAmpBends] = getBodyBendStatistics(obj)
+            numBends=length(obj.bodyAngleAtBend);
+            freqBends=numBends/obj.getDuration();
+            numHighAmpBends=0;
+            for i = 1:numBends
+               if abs(obj.bodyAngleAtBend(i))>=110
+                   numHighAmpBends=numHighAmpBends+1;
+               end
+            end
+        end
     end
     
 end
