@@ -93,7 +93,7 @@ if numElements==0
     handles.fileListBox.String={};
 end
 handles.fileListBox.String(numElements+1)={dataFileName};
-handles.fishObjs(dataFileName)=KinematicAnalysis(tbl,true,[34, 226]);
+handles.fishObjs(dataFileName)=KinematicAnalysis(tbl,'wild','4 dpf',true,[34, 226]);
 % handles.fishObjs(dataFileName)=KinematicAnalysis(tbl,true,[42, 532]);
 guidata(hObject,handles);
 
@@ -188,24 +188,66 @@ cla(handles.plotAxes)
 if(plotSelection==2)
     obj=handles.fishObjs(char(fileNames(1)));
     plot(handles.plotAxes,obj.time,obj.bodyAngle,'-o','MarkerIndices',obj.bendCoordinates(:,1)/2)
-    ylim(handles.plotAxes,[-180 180])
+    ylim(handles.plotAxes,[-180 180]);
+    xlim(handles.plotAxes,[0 obj.getDuration()+20]);
+    xlabel(handles.plotAxes,obj.timeLabel)
+    ylabel(handles.plotAxes,obj.bodyAngleLabel);
+    
 elseif(plotSelection==3)
     maxDuration=-1;
     for i= 1:length(fileNames)
         hold on
         obj=handles.fishObjs(char(fileNames(i)));
-        plot(handles.plotAxes,obj.time,obj.bodyAngle)
+        plot(handles.plotAxes,obj.time,obj.bodyAngle);
         maxDuration=max(maxDuration,obj.getDuration());
     end
     ylim(handles.plotAxes,[-180 180])
-    xlim(handles.plotAxes,[0 maxDuration+20])
+    xlim(handles.plotAxes,[0 maxDuration+20]);
+    xlabel(handles.plotAxes,obj.timeLabel)
+    ylabel(handles.plotAxes,obj.bodyAngleLabel);
+    legend(char(fileNames));
+    
 elseif (plotSelection==4)
      for i= 1:length(fileNames)
         hold on
         obj=handles.fishObjs(char(fileNames(i)));
-        plot(handles.plotAxes,obj.getXCoordinatesFromOrigin,obj.getYCoordinatesFromOrigin)
+        plot(handles.plotAxes,obj.getXCoordinatesFromOrigin,obj.getYCoordinatesFromOrigin);
      end
-     ylim(handles.plotAxes,[-15 15])
-     xlim(handles.plotAxes,[-20 20])
+     ylim(handles.plotAxes,[-15 15]);
+     xlim(handles.plotAxes,[-20 20]);
+     xlabel(handles.plotAxes,obj.xLabel);
+     ylabel(handles.plotAxes,obj.yLabel);
+     legend(char(fileNames));
+elseif (plotSelection==5)
+   labelValMap=containers.Map;
+   
+   % First create groups
+   for i= 1:length(fileNames)
+        obj=handles.fishObjs(char(fileNames(i)));
+        key=[obj.dpf,'\_',obj.genotype];
+        if isKey(labelValMap,key)
+            val=labelValMap(key);
+            labelValMap(key)=[val obj.getDuration()];
+        else
+            labelValMap(key)=[obj.getDuration()];
+        end
+   end
+   
+   % Get the keyset and sort it
+   keySet=keys(labelValMap);
+   keySet=sort(keySet);
+   
+   % Do the plotting
+   
+   for i = 1:length(keySet)
+       key=char(keySet(i));
+       val=labelValMap(key);
+       x=i*ones(1,length(val));
+       hold on
+       scatter(handles.plotAxes,x,val,'filled');
+   end
+   xlim(handles.plotAxes,[0 length(keySet)+1])
+   handles.plotAxes.XTick=1:length(keySet);
+   handles.plotAxes.XTickLabels=keySet;
 end
 guidata(hObject,handles);

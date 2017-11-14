@@ -13,8 +13,11 @@ classdef KinematicAnalysis
         xLabel
         y
         yLabel
-        
         filteredBodyAngle
+        
+        % Fish properties
+        dpf
+        genotype
         
         % bend vars
         bodyAngleAtBend=[]
@@ -23,7 +26,7 @@ classdef KinematicAnalysis
     end
     
     methods
-        function obj=KinematicAnalysis(table,flip,trim)
+        function obj=KinematicAnalysis(table,genotype,dpf,flip,trim)
             % Constant Strings
             CURL_VAR='Curl';
             TIME_VAR='Time';
@@ -35,6 +38,8 @@ classdef KinematicAnalysis
             obj.bodyAngleLabel='Body angle (degrees)';
             obj.xLabel='X Coordinate (mm)';
             obj.yLabel='Y Coordinate (mm)';
+            obj.genotype=genotype;
+            obj.dpf=dpf;
             
             
             % Get the indices for the variables
