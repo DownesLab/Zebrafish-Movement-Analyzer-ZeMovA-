@@ -92,8 +92,18 @@ numElements=length(handles.fileListBox.String);
 if numElements==0
     handles.fileListBox.String={};
 end
-handles.fileListBox.String(numElements+1)={dataFileName};
-handles.fishObjs(dataFileName)=KinematicAnalysis(tbl,'wild','4 dpf',true,[34, 226]);
+% determine the fish name, dpf and genotype - The file should be named as
+% fish name_dpf_genotype
+name=strsplit(dataFileName,'.');
+name
+name=name{1};
+name=char(strsplit(name,'_'));
+fishName=name(1,:);
+dpf=name(2,:);
+genotype=name(3,:);
+
+handles.fileListBox.String(numElements+1)={fishName};
+handles.fishObjs(fishName)=KinematicAnalysis(tbl,genotype,dpf,true,[34, 226]);
 % handles.fishObjs(dataFileName)=KinematicAnalysis(tbl,true,[42, 532]);
 guidata(hObject,handles);
 
@@ -219,35 +229,6 @@ elseif (plotSelection==4)
      ylabel(handles.plotAxes,obj.yLabel);
      legend(char(fileNames));
 elseif (plotSelection==5)
-   labelValMap=containers.Map;
-   
-   % First create groups
-   for i= 1:length(fileNames)
-        obj=handles.fishObjs(char(fileNames(i)));
-        key=[obj.dpf,'\_',obj.genotype];
-        if isKey(labelValMap,key)
-            val=labelValMap(key);
-            labelValMap(key)=[val obj.getDuration()];
-        else
-            labelValMap(key)=[obj.getDuration()];
-        end
-   end
-   
-   % Get the keyset and sort it
-   keySet=keys(labelValMap);
-   keySet=sort(keySet);
-   
-   % Do the plotting
-   
-   for i = 1:length(keySet)
-       key=char(keySet(i));
-       val=labelValMap(key);
-       x=i*ones(1,length(val));
-       hold on
-       scatter(handles.plotAxes,x,val,'filled');
-   end
-   xlim(handles.plotAxes,[0 length(keySet)+1])
-   handles.plotAxes.XTick=1:length(keySet);
-   handles.plotAxes.XTickLabels=keySet;
+    PlottingUtils.dotPlot(handles,fileNames);
 end
 guidata(hObject,handles);

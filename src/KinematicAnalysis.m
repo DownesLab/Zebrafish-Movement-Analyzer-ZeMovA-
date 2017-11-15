@@ -57,7 +57,7 @@ classdef KinematicAnalysis
             end
             
             % trim the table
-            table=table(trim(1)/2+1:trim(2)/2,:);
+            table=table(trim(1)/2:trim(2)/2,:);
             
             % Reset time
             data=table2array(table);
