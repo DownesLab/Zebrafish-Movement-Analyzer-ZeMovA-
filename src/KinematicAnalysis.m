@@ -21,7 +21,6 @@ classdef KinematicAnalysis
         
         % bend vars
         bodyAngleAtBend=[]
-        normalizedBend=[]
         bendCoordinates=[]
     end
     
@@ -53,11 +52,11 @@ classdef KinematicAnalysis
            
 
             if isempty(trim)
-               trim=[2 2*height(table)] ;
+               trim=[1 height(table)] ;
             end
             
             % trim the table
-            table=table(trim(1)/2:trim(2)/2,:);
+            table=table(trim(1):trim(2),:);
             
             % Reset time
             data=table2array(table);
@@ -69,6 +68,7 @@ classdef KinematicAnalysis
             
             % set the table values in object
             obj.time=data(:,timeIndex);
+            obj.linearVelocity=data(:,linearVelIndex);
             if flip
                 obj.bodyAngle=-1*data(:,curlIndex);
             else
@@ -88,6 +88,7 @@ classdef KinematicAnalysis
             changed=false;
             DIRECTION_DECREASE='direction';
             DIRECTION_INCREASE='increasing';
+            
             for i=2:length(obj.filteredBodyAngle)-3
                 if isempty(bends) || i-bends(length(bends))>4
                     current=obj.filteredBodyAngle(i);
@@ -117,18 +118,11 @@ classdef KinematicAnalysis
                     end
                 end
             end
-            
-            bends=bends*2;
+
             bends=bends+trim(1);
-            obj.normalizedBend=zeros(1,length(bends));
-            obj.bodyAngleAtBend=zeros(1,length(bends));
-            
-            for i=1:length(bends)
-                normBend=bends(i)-trim(1);
-                obj.normalizedBend(i)=normBend;
-                obj.bodyAngleAtBend(i)=obj.bodyAngle(floor(normBend/2));
-            end
-            obj.bendCoordinates=vertcat(obj.normalizedBend,obj.bodyAngleAtBend)';
+            normBend=bends-trim(1);
+            obj.bodyAngleAtBend=obj.bodyAngle(normBend)';
+            obj.bendCoordinates=vertcat(normBend,obj.bodyAngleAtBend)';
         end
         
         function duration=getDuration(obj)
