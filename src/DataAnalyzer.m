@@ -22,7 +22,7 @@ function varargout = DataAnalyzer(varargin)
 
 % Edit the above text to modify the response to help DataAnalyzer
 
-% Last Modified by GUIDE v2.5 15-Nov-2017 18:55:19
+% Last Modified by GUIDE v2.5 07-Dec-2017 18:59:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -237,6 +237,8 @@ elseif (plotSelection==5)
         PlottingUtils.MEAN_BODY_ANGLE, PlottingUtils.MEDIAN_BODY_ANGLE, PlottingUtils.MAX_BODY_ANGLE,...
         PlottingUtils.HIGH_AMP_BODY_BENDS, PlottingUtils.MEAN_VELOCITY, PlottingUtils.MEDIAN_VELOCITY, PlottingUtils.MAX_VELOCITY];
     PlottingUtils.dotPlot(handles,fileNames,plotList(plotVar));
+elseif (plotSelection==6)
+    PlottingUtils.heatMap(handles,fileNames);
 end
 guidata(hObject,handles);
 
@@ -262,3 +264,15 @@ function plotVarMenu_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in saveFigButton.
+function saveFigButton_Callback(hObject, eventdata, handles)
+% hObject    handle to saveFigButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+    [fName, fPath]=uiputfile('*.png', 'Save plot','plot.png');
+    if fName==0 %if dialog closed and no file selected
+        return;
+    end
+    export_fig(handles.plotAxes,sprintf('%s',[fPath fName]), '-png')
