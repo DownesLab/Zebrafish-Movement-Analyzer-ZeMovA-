@@ -14,6 +14,7 @@ This program has the following requirements:
 - MATLAB 2016
 - Image Processing Toolbox
 - XCode8 for Mac
+- export_fig toolbox (https://www.mathworks.com/matlabcentral/fileexchange/23629-export-fig)
 
 ## Installation instructions
 
